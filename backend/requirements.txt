@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+gunicorn
+passlib[bcrypt]
+bcrypt==4.0.1
+python-jose
+python-dotenv
+gspread
+google-auth
+pandas
+numpy

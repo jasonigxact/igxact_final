@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: igxact-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: igxact-db
+          property: connectionString
+      - key: GOOGLE_CREDS
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://igxactpixel.vercel.app
+
+databases:
+  - name: igxact-db
+    plan: free
