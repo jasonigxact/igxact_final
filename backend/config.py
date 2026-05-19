@@ -17,7 +17,7 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is not set")
 
 # ── Google Sheets ──────────────────────────────────────────────────────────────
-SHEET_URL = "https://docs.google.com/spreadsheets/d/11SVXk8gh1RRwS7U-rvxfnYx_ieIrqoyAavmkFWwMHjA"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1cvlrxHIO3WW-u3yhCZ8hVTKBxxyBeVrb7b8OSoa65vo/edit?pli=1&gid=1280697593#gid=1280697593"
 
 GOOGLE_SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
