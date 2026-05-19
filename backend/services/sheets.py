@@ -16,7 +16,7 @@ import pandas as pd
 from fastapi import HTTPException
 from google.oauth2.service_account import Credentials
 
-from config import GOOGLE_SCOPE as SCOPE, SHEET_URL
+from config import GOOGLE_SCOPE as SCOPE, SHEET_URL, SHEET_GID
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ def normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_trips_df() -> pd.DataFrame:
     """Fetch all trip records from Google Sheets and return a clean DataFrame."""
-    sheet = open_sheet("0")
+    sheet = open_sheet(SHEET_GID)
     try:
         data = sheet.get_all_records()
     except Exception as e:
