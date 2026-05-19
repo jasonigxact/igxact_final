@@ -57,8 +57,6 @@ app.include_router(targets_router)
 
 
 # ─── Global validation error handler ─────────────────────────────────────────
-# Pydantic validation failures return 422 with clear field-level messages
-# instead of a raw 500.
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc: RequestValidationError):
     errors = [
@@ -74,6 +72,43 @@ async def validation_exception_handler(request, exc: RequestValidationError):
 async def unhandled_exception_handler(request, exc: Exception):
     logger.error(f"Unhandled exception on {request.url.path}: {exc!r}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+# ─── Debug credentials (REMOVE AFTER FIXING) ─────────────────────────────────
+def _try_parse(s: str) -> bool:
+    try:
+        import json
+        json.loads(s)
+        return True
+    except Exception:
+        return False
+
+@app.get("/debug-creds")
+def debug_creds():
+    import json
+    secret_path = "/etc/secrets/google_creds.json"
+    creds_env = os.getenv("GOOGLE_CREDS")
+
+    secret_content = None
+    secret_valid = False
+    secret_error = None
+    if os.path.exists(secret_path):
+        try:
+            with open(secret_path) as f:
+                secret_content = f.read()
+            secret_valid = _try_parse(secret_content)
+        except Exception as e:
+            secret_error = str(e)
+
+    return {
+        "env_var_present": bool(creds_env),
+        "env_var_length": len(creds_env) if creds_env else 0,
+        "env_var_valid_json": _try_parse(creds_env) if creds_env else False,
+        "secret_file_exists": os.path.exists(secret_path),
+        "secret_file_length": len(secret_content) if secret_content else 0,
+        "secret_file_valid_json": secret_valid,
+        "secret_file_error": secret_error,
+    }
 
 
 # ─── Vehicles ─────────────────────────────────────────────────────────────────
@@ -106,7 +141,6 @@ def update_vehicle_target(vehicle_name: str, body: dict, user=Depends(require_ad
 # ─── Trips ────────────────────────────────────────────────────────────────────
 @app.post("/add-trip", status_code=201)
 def create_trip(body: TripCreate, user=Depends(require_admin)):
-    # Convert validated schema → sheet-column dict using aliases
     return add_trip(body.dict(by_alias=True))
 
 
@@ -165,14 +199,11 @@ def get_calendar(
     if df.empty:
         return {"trips": [], "year": y, "month": m}
 
-    # Parse End date — flexible format
     if "End date" in df.columns:
         df["End date parsed"] = pd.to_datetime(df["End date"], errors="coerce")
     else:
         df["End date parsed"] = pd.NaT
 
-    # Only show trips that START in the given month
-    # (a trip starting in May and ending in June belongs to May)
     if "Start Date" in df.columns:
         mask = (
             (df["Start Date"].dt.year  == y) &
@@ -209,7 +240,6 @@ def get_data(
     mobile:   str = Query(None),
     user=Depends(verify_token),
 ):
-    # year="all" means no year filter (show all years)
     year_int = None if (not year or year == "all") else int(year)
     show_all = (year == "all")
     params = DashboardQueryParams(
