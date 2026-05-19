@@ -27,20 +27,36 @@ logger = logging.getLogger(__name__)
 
 def get_client() -> gspread.Client:
     """Authenticate and return an authorised gspread client.
+    Tries GOOGLE_CREDS env var first, then falls back to secret file.
     Raises HTTPException(500) on any failure — never returns None.
     """
+    creds_dict = None
+
+    # 1. Try environment variable
     creds_env = os.getenv("GOOGLE_CREDS")
-    if not creds_env:
-        logger.error("GOOGLE_CREDS environment variable is missing")
+    if creds_env:
+        try:
+            creds_dict = json.loads(creds_env)
+        except json.JSONDecodeError as e:
+            logger.error(f"GOOGLE_CREDS is not valid JSON: {e}")
+
+    # 2. Fall back to Render secret file
+    if creds_dict is None:
+        secret_path = "/etc/secrets/google_creds.json"
+        if os.path.exists(secret_path):
+            try:
+                with open(secret_path) as f:
+                    creds_dict = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to read secret file: {e}")
+
+    if creds_dict is None:
+        logger.error("No valid Google credentials found (env var or secret file)")
         raise HTTPException(status_code=500, detail="Google Sheets credentials not configured")
 
     try:
-        creds_dict = json.loads(creds_env)
         creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         return gspread.authorize(creds)
-    except json.JSONDecodeError as e:
-        logger.error(f"GOOGLE_CREDS is not valid JSON: {e}")
-        raise HTTPException(status_code=500, detail="Google Sheets credentials are malformed")
     except Exception as e:
         logger.error(f"Google Sheets auth error: {e}")
         raise HTTPException(status_code=500, detail="Google Sheets authentication failed")
