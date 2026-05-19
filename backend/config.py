@@ -17,7 +17,8 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is not set")
 
 # ── Google Sheets ──────────────────────────────────────────────────────────────
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1cvlrxHIO3WW-u3yhCZ8hVTKBxxyBeVrb7b8OSoa65vo/edit?pli=1&gid=1870491225#gid=1870491225"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1cvlrxHIO3WW-u3yhCZ8hVTKBxxyBeVrb7b8OSoa65vo"
+SHEET_GID = "1870491225"
 
 GOOGLE_SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -26,4 +27,4 @@ GOOGLE_SCOPE = [
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "https://igxact-final.vercel.app")
-ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in _raw_origins.split(",") if o.strip()]
