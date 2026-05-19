@@ -26,5 +26,5 @@ GOOGLE_SCOPE = [
 ]
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "https://igxact-final.vercel.app")
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "https://www.primeholidaypackages.com")
 ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in _raw_origins.split(",") if o.strip()]
