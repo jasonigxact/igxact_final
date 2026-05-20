@@ -427,9 +427,9 @@ def get_dashboard_data(
         overall_received     = safe_float(df_all_time["Received"].sum()) if "Received" in df_all_time.columns else 0.0
         overall_pending      = safe_float(df_non_cancelled["Pending"].sum()) if "Pending" in df_non_cancelled.columns else 0.0
 
-        # Current year total deal
-        current_year = datetime.now().year
-        df_cy = df_all_time[df_all_time.get("Year", pd.Series(dtype=float)).astype(str).str.strip().str.split(".").str[0] == str(current_year)] if "Year" in df_all_time.columns else pd.DataFrame()
+        # Current year total deal — use the selected/effective year
+        target_year = year if year else datetime.now().year
+        df_cy = df_all_time[df_all_time["Year"].astype(str).str.strip().str.split(".").str[0] == str(target_year)] if "Year" in df_all_time.columns else pd.DataFrame()
         if not df_cy.empty:
             df_cy_cancelled     = df_cy[df_cy["Status"].str.contains("cancel", na=False)]
             df_cy_non_cancelled = df_cy[~df_cy["Status"].str.contains("cancel", na=False)]
