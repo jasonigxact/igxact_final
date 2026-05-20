@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
+from config import SHEET_GID
 from services.sheets import (
     EXPENSE_COLS,
     REVENUE_COL,
@@ -196,7 +197,7 @@ def add_vehicle(name: str) -> dict:
 
 def add_trip(data: dict) -> dict:
     logger.info(f"add_trip: customer='{data.get('Customer Name', '')}' vehicle='{data.get('Vehicle Details', '')}'")
-    sheet = open_sheet("0")
+    sheet = open_sheet(SHEET_GID)
     try:
         records = sheet.get_all_records()
         headers = sheet.row_values(1)
@@ -234,7 +235,7 @@ def add_trip(data: dict) -> dict:
 
 def update_trip(trip_id: int, data: dict) -> dict:
     logger.info(f"update_trip: trip_id={trip_id} by customer='{data.get('Customer Name', '')}'")
-    sheet = open_sheet("0")
+    sheet = open_sheet(SHEET_GID)
     try:
         records = sheet.get_all_records()
         headers = sheet.row_values(1)
@@ -267,7 +268,7 @@ def update_trip(trip_id: int, data: dict) -> dict:
 
 
 def get_sheet_columns() -> list[str]:
-    sheet = open_sheet("0")
+    sheet = open_sheet(SHEET_GID)
     try:
         return sheet.row_values(1)
     except Exception as e:
