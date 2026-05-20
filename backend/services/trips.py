@@ -415,17 +415,34 @@ def get_dashboard_data(
         df_view = df
 
     # ── Overall all-time stats (all years, all statuses) ────────────────────
+    # Cancelled trips: only count Received payment, not Deal Price
     df_all_time = load_trips_df()
     if not df_all_time.empty:
-        overall_total_deal   = safe_float(df_all_time[REVENUE_COL].sum())
+        df_cancelled     = df_all_time[df_all_time["Status"].str.contains("cancel", na=False)]
+        df_non_cancelled = df_all_time[~df_all_time["Status"].str.contains("cancel", na=False)]
+        # For cancelled trips use only received amount as effective deal
+        cancelled_deal   = safe_float(df_cancelled["Received"].sum()) if "Received" in df_cancelled.columns else 0.0
+        overall_total_deal   = safe_float(df_non_cancelled[REVENUE_COL].sum()) + cancelled_deal
         overall_total_trips  = len(df_all_time)
         overall_received     = safe_float(df_all_time["Received"].sum()) if "Received" in df_all_time.columns else 0.0
-        overall_pending      = safe_float(df_all_time["Pending"].sum()) if "Pending" in df_all_time.columns else 0.0
+        overall_pending      = safe_float(df_non_cancelled["Pending"].sum()) if "Pending" in df_non_cancelled.columns else 0.0
+
+        # Current year total deal
+        current_year = datetime.now().year
+        df_cy = df_all_time[df_all_time.get("Year", pd.Series(dtype=float)).astype(str).str.strip().str.split(".").str[0] == str(current_year)] if "Year" in df_all_time.columns else pd.DataFrame()
+        if not df_cy.empty:
+            df_cy_cancelled     = df_cy[df_cy["Status"].str.contains("cancel", na=False)]
+            df_cy_non_cancelled = df_cy[~df_cy["Status"].str.contains("cancel", na=False)]
+            cy_cancelled_deal   = safe_float(df_cy_cancelled["Received"].sum()) if "Received" in df_cy_cancelled.columns else 0.0
+            current_year_deal   = safe_float(df_cy_non_cancelled[REVENUE_COL].sum()) + cy_cancelled_deal
+        else:
+            current_year_deal = 0.0
     else:
         overall_total_deal  = 0.0
         overall_total_trips = 0
         overall_received    = 0.0
         overall_pending     = 0.0
+        current_year_deal   = 0.0
 
     # ── KPIs (always off completed trips) ──────────────────────────────────
     total_revenue = safe_float(df_completed[REVENUE_COL].sum())
@@ -703,10 +720,11 @@ def get_dashboard_data(
         "active_year": "all" if show_all_years else (int(effective_year) if effective_year else None),
         "selected_year": int(year) if year else None,
         "overall": {
-            "total_deal":   round(overall_total_deal, 2),
-            "total_trips":  overall_total_trips,
-            "received":     round(overall_received, 2),
-            "pending":      round(overall_pending, 2),
+            "total_deal":         round(overall_total_deal, 2),
+            "total_trips":        overall_total_trips,
+            "received":           round(overall_received, 2),
+            "pending":            round(overall_pending, 2),
+            "current_year_deal":  round(current_year_deal, 2),
         },
         "month_targets": month_targets,
         "kpi": {

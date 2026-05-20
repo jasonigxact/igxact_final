@@ -320,6 +320,7 @@ export default function Home() {
         <section className="section fade-up" style={{ animationDelay: "0.05s" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
             <KpiCard label="All-Time Total Deal" value={`₹${(data?.overall?.total_deal || 0).toLocaleString("en-IN")}`} accent="#7c3aed" icon="🌐" />
+            <KpiCard label={`${new Date().getFullYear()} Total Deal`} value={`₹${(data?.overall?.current_year_deal || 0).toLocaleString("en-IN")}`} accent="#0ea5e9" icon="📆" />
             <KpiCard label="Total Revenue"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
             <KpiCard label="Total Profit"   value={`₹${(kpi.total_profit  || 0).toLocaleString("en-IN")}`} accent="var(--accent-green)"   icon="📈" />
             <KpiCard label="Other Expenses" value={`₹${otherExpenses.toLocaleString("en-IN")}`}            accent="#f43f5e"               icon="📉" />

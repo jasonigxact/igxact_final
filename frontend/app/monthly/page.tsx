@@ -83,6 +83,7 @@ useEffect(() => {
   const completed = data?.completed || {};
   const progress  = data?.progress  || {};
   const booked    = data?.booked    || {};
+  const done      = data?.done      || {};
 
   return (
     <div className="page-root">
@@ -212,6 +213,19 @@ useEffect(() => {
               <div style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: 3 }}>
                 <span>Received: <strong style={{ color: "var(--text-primary)" }}>₹{(booked.received || 0).toLocaleString("en-IN")}</strong></span>
                 <span>Pending: <strong style={{ color: "var(--accent-red)" }}>₹{(booked.pending || 0).toLocaleString("en-IN")}</strong></span>
+              </div>
+            </div>
+
+            {/* Done */}
+            <div className="kpi-card" style={{ borderColor: "rgba(139,92,246,0.18)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Done</p>
+                <span className="pill" style={{ fontSize: 10, background: "rgba(139,92,246,0.12)", color: "#7c3aed" }}>{done.trips ?? 0} trips</span>
+              </div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "#8b5cf6", marginBottom: 8 }}>₹{(done.revenue || 0).toLocaleString("en-IN")}</p>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: 3 }}>
+                <span>Received: <strong style={{ color: "var(--text-primary)" }}>₹{(done.received || 0).toLocaleString("en-IN")}</strong></span>
+                <span>Pending: <strong style={{ color: "var(--accent-red)" }}>₹{(done.pending || 0).toLocaleString("en-IN")}</strong></span>
               </div>
             </div>
           </div>
