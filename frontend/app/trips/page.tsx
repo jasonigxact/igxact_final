@@ -512,7 +512,7 @@ export default function TripsPage() {
                             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{trip["Cust. Contact Number"]}</div>
                           </td>
                           <td style={{ padding: "10px 12px" }}>{trip["Trip From"]} → {trip["Trip TO"]}</td>
-                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--text-muted)" }}>{trip["Start Date"]}</td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--text-muted)" }}>{trip["Start Date"] ? new Date(trip["Start Date"]).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""}</td>
                           <td style={{ padding: "10px 12px" }}>{trip["Vehicle Details"]}</td>
                           <td style={{ padding: "10px 12px", fontWeight: 600 }}>₹{tDeal.toLocaleString("en-IN")}</td>
                           <td style={{ padding: "10px 12px", fontWeight: 600, color: tProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>₹{tProfit.toLocaleString("en-IN")}</td>
