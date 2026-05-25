@@ -15,19 +15,19 @@ type Trip = {
   deal: number;
 };
 
-const DAYS   = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = ["January","February","March","April","May","June",
                 "July","August","September","October","November","December"];
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  booked:    { bg: "rgba(37,99,235,0.12)",  text: "var(--accent-primary)", dot: "#2563eb" },
-  progress:  { bg: "rgba(249,115,22,0.12)", text: "#f97316",               dot: "#f97316" },
-  done:      { bg: "rgba(124,58,237,0.12)", text: "#7c3aed",               dot: "#7c3aed" },
-  completed: { bg: "rgba(34,197,94,0.12)",  text: "var(--accent-green)",   dot: "#16a34a" },
+  booked:    { bg: "rgba(37,99,235,0.13)",  text: "#1d4ed8", dot: "#2563eb" },
+  progress:  { bg: "rgba(249,115,22,0.13)", text: "#c2410c", dot: "#f97316" },
+  done:      { bg: "rgba(124,58,237,0.13)", text: "#6d28d9", dot: "#7c3aed" },
+  completed: { bg: "rgba(34,197,94,0.13)",  text: "#15803d", dot: "#16a34a" },
 };
 
 function getStatusColor(status: string) {
-  return STATUS_COLORS[status.toLowerCase()] || { bg: "rgba(0,0,0,0.06)", text: "var(--text-muted)", dot: "#999" };
+  return STATUS_COLORS[status.toLowerCase()] || { bg: "rgba(0,0,0,0.06)", text: "#64748b", dot: "#94a3b8" };
 }
 
 function dateRange(start: string, end: string): string[] {
@@ -49,7 +49,6 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const [lightboxDate, setLightboxDate] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,7 +64,6 @@ export default function CalendarPage() {
       .catch(() => setLoading(false));
   }, [year, month]);
 
-  // Map date -> trips on that date
   const tripsByDate: Record<string, Trip[]> = {};
   trips.forEach(t => {
     dateRange(t.start_date, t.end_date).forEach(d => {
@@ -74,14 +72,12 @@ export default function CalendarPage() {
     });
   });
 
-  // Build calendar grid
-  const firstDay  = new Date(year, month - 1, 1).getDay();
+  const firstDay    = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const cells: (number | null)[] = [
     ...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-  // pad to complete last row
   while (cells.length % 7 !== 0) cells.push(null);
 
   const todayStr = now.toISOString().split("T")[0];
@@ -89,256 +85,132 @@ export default function CalendarPage() {
   const prevMonth = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12); }
     else setMonth(m => m - 1);
-    setSelected(null);
   };
   const nextMonth = () => {
     if (month === 12) { setYear(y => y + 1); setMonth(1); }
     else setMonth(m => m + 1);
-    setSelected(null);
   };
 
-  const selectedDateStr = selected;
-  const selectedTrips   = selectedDateStr ? (tripsByDate[selectedDateStr] || []) : [];
+  // summary counts
+  const statusCounts = trips.reduce((acc: any, t) => {
+    const s = t.status.toLowerCase();
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {});
+  const totalDeal = trips.reduce((s, t) => s + t.deal, 0);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-main)", fontFamily: "var(--font-body)" }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-main)", fontFamily: "var(--font-body)", overflow: "hidden" }}>
       <Navbar />
       <style>{`
-        @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
-        .cal-cell:hover { background: rgba(37,99,235,0.07) !important; cursor:pointer; }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.97)}to{opacity:1;transform:scale(1)} }
+        .cal-cell { transition: all 0.12s ease; cursor: pointer; }
+        .cal-cell:hover { background: rgba(37,99,235,0.08) !important; transform: scale(1.02); }
         .cal-cell.today { border: 2px solid var(--accent-primary) !important; }
-        .cal-cell.selected { background: rgba(37,99,235,0.10) !important; border: 2px solid var(--accent-primary) !important; }
-        .lightbox-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; animation: fadeIn 0.18s ease; }
-        .lightbox-box { background: rgba(255,255,255,0.96); border-radius: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.22); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 28px; }
-        .lightbox-row { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid rgba(148,163,184,0.12); }
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; animation: fadeIn 0.18s ease; }
+        .lightbox-box { background: rgba(255,255,255,0.97); border-radius: 22px; box-shadow: 0 24px 80px rgba(0,0,0,0.22); width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 24px; }
+        .lb-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(148,163,184,0.12); }
       `}</style>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 20px" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 800, color: "var(--text-primary)" }}>
-              📅 Trip Calendar
-            </h1>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
-              {trips.length} trip{trips.length !== 1 ? "s" : ""} in {MONTHS[month - 1]} {year}
-            </p>
-          </div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "10px 16px 8px", overflow: "hidden", maxWidth: 1200, width: "100%", margin: "0 auto" }}>
 
-          {/* Nav */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={prevMonth} style={{
-              background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.1)",
-              borderRadius: 10, width: 36, height: 36, cursor: "pointer",
-              fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-            }}>‹</button>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--text-primary)", minWidth: 160, textAlign: "center" }}>
+        {/* ── Header row ── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={prevMonth} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800, color: "var(--text-primary)", minWidth: 140, textAlign: "center" }}>
               {MONTHS[month - 1]} {year}
             </span>
-            <button onClick={nextMonth} style={{
-              background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.1)",
-              borderRadius: 10, width: 36, height: 36, cursor: "pointer",
-              fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-            }}>›</button>
-            <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); setSelected(null); }}
-              style={{
-                background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.2)",
-                borderRadius: 10, padding: "7px 14px", cursor: "pointer",
-                fontSize: 13, color: "var(--accent-primary)", fontWeight: 600,
-              }}>Today</button>
+            <button onClick={nextMonth} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+            <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); }} style={{ background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.2)", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontSize: 12, color: "var(--accent-primary)", fontWeight: 600 }}>Today</button>
+          </div>
+
+          {/* Legend + summary inline */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            {Object.entries(STATUS_COLORS).map(([s, c]) => (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.dot }} />
+                <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>{s} {statusCounts[s] ? `(${statusCounts[s]})` : ""}</span>
+              </div>
+            ))}
+            {totalDeal > 0 && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-primary)", background: "rgba(37,99,235,0.08)", padding: "3px 10px", borderRadius: 20 }}>
+                ₹{totalDeal.toLocaleString("en-IN")}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Legend */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-          {Object.entries(STATUS_COLORS).map(([s, c]) => (
-            <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: c.dot }} />
-              <span style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "capitalize" }}>{s}</span>
-            </div>
+        {/* ── Day headers ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 3 }}>
+          {DAYS.map(d => (
+            <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", padding: "3px 0" }}>{d}</div>
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-          {/* Calendar grid */}
-          <div style={{ flex: 1 }}>
-            {/* Day headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 4 }}>
-              {DAYS.map(d => (
-                <div key={d} style={{
-                  textAlign: "center", fontSize: 11, fontWeight: 700,
-                  color: "var(--text-muted)", textTransform: "uppercase",
-                  letterSpacing: "0.07em", padding: "6px 0",
-                }}>{d}</div>
-              ))}
-            </div>
+        {/* ── Calendar grid — fills remaining height ── */}
+        {loading ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>Loading...</div>
+        ) : (
+          <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7,1fr)", gridTemplateRows: `repeat(${cells.length / 7},1fr)`, gap: 3 }}>
+            {cells.map((day, idx) => {
+              if (!day) return <div key={idx} />;
+              const dateStr  = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+              const dayTrips = tripsByDate[dateStr] || [];
+              const isToday  = dateStr === todayStr;
 
-            {/* Cells */}
-            {loading ? (
-              <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>Loading...</div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
-                {cells.map((day, idx) => {
-                  if (!day) return <div key={idx} style={{ minHeight: 90 }} />;
-                  const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-                  const dayTrips = tripsByDate[dateStr] || [];
-                  const isToday    = dateStr === todayStr;
-                  const isSelected = dateStr === selectedDateStr;
+              return (
+                <div
+                  key={idx}
+                  className={`cal-cell${isToday ? " today" : ""}`}
+                  onClick={() => dayTrips.length > 0 && setLightboxDate(dateStr)}
+                  style={{
+                    borderRadius: 8, padding: "4px 5px",
+                    background: dayTrips.length > 0 ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.40)",
+                    border: "1px solid rgba(255,255,255,0.85)",
+                    backdropFilter: "blur(6px)",
+                    boxShadow: dayTrips.length > 0 ? "0 1px 4px rgba(0,0,0,0.07)" : "none",
+                    cursor: dayTrips.length > 0 ? "pointer" : "default",
+                    overflow: "hidden",
+                    display: "flex", flexDirection: "column",
+                  }}
+                >
+                  {/* Date number */}
+                  <div style={{
+                    fontSize: 11, fontWeight: isToday ? 800 : 500,
+                    color: isToday ? "var(--accent-primary)" : dayTrips.length > 0 ? "var(--text-primary)" : "var(--text-muted)",
+                    textAlign: "right", lineHeight: 1, marginBottom: 2, flexShrink: 0,
+                  }}>{day}</div>
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`cal-cell${isToday ? " today" : ""}${isSelected ? " selected" : ""}`}
-                      onClick={() => { setSelected(isSelected ? null : dateStr); if (dayTrips.length > 0) setLightboxDate(dateStr); }}
-                      style={{
-                        minHeight: 90, borderRadius: 10, padding: "8px 6px",
-                        background: "rgba(255,255,255,0.65)",
-                        border: "1px solid rgba(255,255,255,0.85)",
-                        backdropFilter: "blur(8px)",
-                        boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
-                        transition: "all 0.15s ease",
-                        position: "relative",
-                      }}
-                    >
-                      {/* Date number */}
-                      <div style={{
-                        fontSize: 13, fontWeight: isToday ? 800 : 600,
-                        color: isToday ? "var(--accent-primary)" : "var(--text-primary)",
-                        marginBottom: 4, textAlign: "right", paddingRight: 2,
-                      }}>{day}</div>
-
-                      {/* Trip dots/pills */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        {dayTrips.slice(0, 3).map((t, i) => {
-                          const sc = getStatusColor(t.status);
-                          return (
-                            <div key={i} onClick={e => { e.stopPropagation(); setLightboxDate(dateStr); }} style={{
-                              background: sc.bg, borderRadius: 4,
-                              padding: "2px 5px", fontSize: 10, fontWeight: 600,
-                              color: sc.text, overflow: "hidden",
-                              whiteSpace: "nowrap", textOverflow: "ellipsis",
-                              cursor: "pointer",
-                            }}>
-                              {t.from} → {t.to}
-                            </div>
-                          );
-                        })}
-                        {dayTrips.length > 3 && (
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, paddingLeft: 4 }}>
-                            +{dayTrips.length - 3} more
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Empty indicator */}
-                      {dayTrips.length === 0 && (
-                        <div style={{ position: "absolute", bottom: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: "rgba(0,0,0,0.08)" }} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Side panel */}
-          <div style={{ width: 280, flexShrink: 0 }}>
-            {selectedDateStr ? (
-              <div style={{
-                background: "rgba(255,255,255,0.80)", backdropFilter: "blur(12px)",
-                border: "1px solid rgba(255,255,255,0.9)", borderRadius: 14,
-                padding: "18px 20px", animation: "fadeIn 0.2s ease",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-              }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--text-primary)", marginBottom: 14 }}>
-                  {new Date(selectedDateStr + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-                </p>
-                {selectedTrips.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text-muted)" }}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>🗓️</div>
-                    <p style={{ fontSize: 13 }}>No trips on this date</p>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {selectedTrips.map((t, i) => {
+                  {/* Trip dots */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1, overflow: "hidden" }}>
+                    {dayTrips.slice(0, 2).map((t, i) => {
                       const sc = getStatusColor(t.status);
                       return (
-                        <div key={i} onClick={() => setLightboxDate(selectedDateStr)} style={{
-                          background: sc.bg, borderRadius: 10, padding: "12px 14px",
-                          border: `1px solid ${sc.dot}22`, cursor: "pointer",
+                        <div key={i} style={{
+                          background: sc.bg, borderRadius: 3,
+                          padding: "1px 4px", fontSize: 9, fontWeight: 600,
+                          color: sc.text, overflow: "hidden",
+                          whiteSpace: "nowrap", textOverflow: "ellipsis", lineHeight: "14px",
                         }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: sc.text, textTransform: "capitalize" }}>{t.status}</span>
-                            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>#{t.trip_id}</span>
-                          </div>
-                          <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", marginBottom: 4 }}>{t.customer}</p>
-                          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>📍 {t.from} → {t.to}</p>
-                          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>🚗 {t.vehicle}</p>
-                          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}>
-                            ₹{Number(t.deal).toLocaleString("en-IN")}
-                          </p>
-                          {t.start_date && (
-                            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                              {t.start_date}{t.end_date && t.end_date !== t.start_date ? ` → ${t.end_date}` : ""}
-                            </p>
-                          )}
+                          {t.from}
                         </div>
                       );
                     })}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                background: "rgba(255,255,255,0.5)", backdropFilter: "blur(8px)",
-                border: "1px solid rgba(255,255,255,0.8)", borderRadius: 14,
-                padding: "32px 20px", textAlign: "center",
-                color: "var(--text-muted)",
-              }}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>📅</div>
-                <p style={{ fontSize: 13, fontWeight: 600 }}>Click a date to see trips</p>
-                <p style={{ fontSize: 12, marginTop: 6 }}>Dates with trips show colored pills</p>
-              </div>
-            )}
-
-            {/* Monthly summary */}
-            {trips.length > 0 && (
-              <div style={{
-                marginTop: 14, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(8px)",
-                border: "1px solid rgba(255,255,255,0.85)", borderRadius: 14, padding: "14px 16px",
-              }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Month Summary</p>
-                {Object.entries(
-                  trips.reduce((acc: any, t) => {
-                    const s = t.status.toLowerCase();
-                    acc[s] = (acc[s] || 0) + 1;
-                    return acc;
-                  }, {})
-                ).map(([s, count]) => {
-                  const sc = getStatusColor(s);
-                  return (
-                    <div key={s} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: sc.dot }} />
-                        <span style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "capitalize" }}>{s}</span>
+                    {dayTrips.length > 2 && (
+                      <div style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600, paddingLeft: 2, lineHeight: "12px" }}>
+                        +{dayTrips.length - 2}
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{count as number}</span>
-                    </div>
-                  );
-                })}
-                <div style={{ borderTop: "1px solid rgba(0,0,0,0.07)", paddingTop: 8, marginTop: 6, display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>Total Deal</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-primary)" }}>
-                    ₹{trips.reduce((s, t) => s + t.deal, 0).toLocaleString("en-IN")}
-                  </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Lightbox — shows ALL trips for the clicked date */}
+      {/* ── Lightbox — all trips for clicked date ── */}
       {lightboxDate && (() => {
         const lbTrips = tripsByDate[lightboxDate] || [];
         const lbLabel = new Date(lightboxDate + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -346,46 +218,40 @@ export default function CalendarPage() {
         return (
           <div className="lightbox-overlay" onClick={() => setLightboxDate(null)}>
             <div className="lightbox-box" onClick={e => e.stopPropagation()}>
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div>
-                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{lbLabel}</p>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 3 }}>{lbLabel}</p>
+                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 19, fontWeight: 800 }}>
                     {lbTrips.length} Trip{lbTrips.length !== 1 ? "s" : ""}
                   </h2>
-                  <p style={{ fontSize: 13, color: "var(--accent-primary)", fontWeight: 600, marginTop: 2 }}>
+                  <p style={{ fontSize: 13, color: "var(--accent-primary)", fontWeight: 700, marginTop: 2 }}>
                     Total: ₹{lbTotal.toLocaleString("en-IN")}
                   </p>
                 </div>
-                <button onClick={() => setLightboxDate(null)} style={{ background: "rgba(0,0,0,0.06)", border: "none", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-muted)", flexShrink: 0 }}>✕</button>
+                <button onClick={() => setLightboxDate(null)} style={{ background: "rgba(0,0,0,0.06)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16, color: "var(--text-muted)" }}>✕</button>
               </div>
 
-              {/* Trip cards */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {lbTrips.map((t, i) => {
                   const sc = getStatusColor(t.status);
                   return (
-                    <div key={i} style={{ background: sc.bg, border: `1px solid ${sc.dot}30`, borderRadius: 14, padding: "16px 18px" }}>
-                      {/* Trip header */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: sc.text, textTransform: "capitalize", background: "rgba(255,255,255,0.6)", padding: "3px 10px", borderRadius: 20 }}>{t.status}</span>
-                        <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>#{t.trip_id}</span>
+                    <div key={i} style={{ background: sc.bg, border: `1px solid ${sc.dot}30`, borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: sc.text, textTransform: "capitalize", background: "rgba(255,255,255,0.65)", padding: "2px 8px", borderRadius: 20 }}>{t.status}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>#{t.trip_id}</span>
                       </div>
-                      {/* Customer */}
-                      <p style={{ fontWeight: 700, fontSize: 15, color: "var(--text-primary)", marginBottom: 8 }}>{t.customer}</p>
-                      {/* Details rows */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                        <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Route</span><strong>{t.from} → {t.to}</strong></div>
-                        <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Vehicle</span><strong>{t.vehicle}</strong></div>
-                        <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Dates</span><strong>{t.start_date}{t.end_date && t.end_date !== t.start_date ? ` → ${t.end_date}` : ""}</strong></div>
-                        <div className="lightbox-row" style={{ border: "none" }}><span style={{ color: "var(--text-muted)" }}>Deal Price</span><strong style={{ color: "var(--accent-primary)" }}>₹{Number(t.deal).toLocaleString("en-IN")}</strong></div>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", marginBottom: 6 }}>{t.customer}</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <div className="lb-row"><span style={{ color: "var(--text-muted)" }}>Route</span><strong>{t.from} → {t.to}</strong></div>
+                        <div className="lb-row"><span style={{ color: "var(--text-muted)" }}>Vehicle</span><strong>{t.vehicle}</strong></div>
+                        <div className="lb-row"><span style={{ color: "var(--text-muted)" }}>Dates</span><strong>{t.start_date}{t.end_date && t.end_date !== t.start_date ? ` → ${t.end_date}` : ""}</strong></div>
+                        <div className="lb-row" style={{ border: "none" }}><span style={{ color: "var(--text-muted)" }}>Deal</span><strong style={{ color: "var(--accent-primary)" }}>₹{Number(t.deal).toLocaleString("en-IN")}</strong></div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-              <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginTop: 16 }}>Click outside to close</p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", marginTop: 14 }}>Click outside to close</p>
             </div>
           </div>
         );
