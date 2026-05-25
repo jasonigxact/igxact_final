@@ -181,6 +181,18 @@ useEffect(() => {
             <h2 className="section-title">Status Breakdown</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+            {/* Total Deal excl. Cancelled — FIRST */}
+            <div className="kpi-card" style={{ borderColor: "rgba(16,185,129,0.25)", background: "rgba(16,185,129,0.04)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Total Deal</p>
+                <span className="pill pill-green" style={{ fontSize: 10 }}>excl. cancelled</span>
+              </div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "var(--accent-green)", marginBottom: 8 }}>₹{totalExclCancelled.toLocaleString("en-IN")}</p>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                <span>Sum of Completed + In Progress + Booked + Done</span>
+              </div>
+            </div>
+
             {/* Completed */}
             <div className="kpi-card" style={{ borderColor: "rgba(34,211,160,0.18)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -217,18 +229,6 @@ useEffect(() => {
               <div style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: 3 }}>
                 <span>Received: <strong style={{ color: "var(--text-primary)" }}>₹{(booked.received || 0).toLocaleString("en-IN")}</strong></span>
                 <span>Pending: <strong style={{ color: "var(--accent-red)" }}>₹{(booked.pending || 0).toLocaleString("en-IN")}</strong></span>
-              </div>
-            </div>
-
-            {/* Total Deal excl. Cancelled */}
-            <div className="kpi-card" style={{ borderColor: "rgba(16,185,129,0.25)", background: "rgba(16,185,129,0.04)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Total Deal</p>
-                <span className="pill pill-green" style={{ fontSize: 10 }}>excl. cancelled</span>
-              </div>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "var(--accent-green)", marginBottom: 8 }}>₹{totalExclCancelled.toLocaleString("en-IN")}</p>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                <span>Sum of Completed + In Progress + Booked + Done</span>
               </div>
             </div>
 

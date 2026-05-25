@@ -50,6 +50,7 @@ export default function CalendarPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [lightboxTrip, setLightboxTrip] = useState<Trip | null>(null);
 
   useEffect(() => {
     const r = sessionStorage.getItem("role");
@@ -107,6 +108,9 @@ export default function CalendarPage() {
         .cal-cell:hover { background: rgba(37,99,235,0.07) !important; cursor:pointer; }
         .cal-cell.today { border: 2px solid var(--accent-primary) !important; }
         .cal-cell.selected { background: rgba(37,99,235,0.10) !important; border: 2px solid var(--accent-primary) !important; }
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; animation: fadeIn 0.18s ease; }
+        .lightbox-box { background: rgba(255,255,255,0.96); border-radius: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.22); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+        .lightbox-row { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid rgba(148,163,184,0.12); }
       `}</style>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 20px" }}>
@@ -208,11 +212,12 @@ export default function CalendarPage() {
                         {dayTrips.slice(0, 3).map((t, i) => {
                           const sc = getStatusColor(t.status);
                           return (
-                            <div key={i} style={{
+                            <div key={i} onClick={e => { e.stopPropagation(); setLightboxTrip(t); }} style={{
                               background: sc.bg, borderRadius: 4,
                               padding: "2px 5px", fontSize: 10, fontWeight: 600,
                               color: sc.text, overflow: "hidden",
                               whiteSpace: "nowrap", textOverflow: "ellipsis",
+                              cursor: "pointer",
                             }}>
                               {t.from} → {t.to}
                             </div>
@@ -258,9 +263,9 @@ export default function CalendarPage() {
                     {selectedTrips.map((t, i) => {
                       const sc = getStatusColor(t.status);
                       return (
-                        <div key={i} style={{
+                        <div key={i} onClick={() => setLightboxTrip(t)} style={{
                           background: sc.bg, borderRadius: 10, padding: "12px 14px",
-                          border: `1px solid ${sc.dot}22`,
+                          border: `1px solid ${sc.dot}22`, cursor: "pointer",
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: sc.text, textTransform: "capitalize" }}>{t.status}</span>
@@ -332,6 +337,43 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+    </div>
+
+      {/* Lightbox */}
+      {lightboxTrip && (
+        <div className="lightbox-overlay" onClick={() => setLightboxTrip(null)}>
+          <div className="lightbox-box" onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: getStatusColor(lightboxTrip.status).text, textTransform: "capitalize", background: getStatusColor(lightboxTrip.status).bg, padding: "3px 10px", borderRadius: 20 }}>{lightboxTrip.status}</span>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, marginTop: 8 }}>Trip #{lightboxTrip.trip_id}</h2>
+              </div>
+              <button onClick={() => setLightboxTrip(null)} style={{ background: "rgba(0,0,0,0.06)", border: "none", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-muted)" }}>✕</button>
+            </div>
+
+            <div style={{ background: "rgba(241,245,249,0.8)", borderRadius: 14, padding: "16px 18px", marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>Customer</p>
+              <p style={{ fontWeight: 700, fontSize: 16 }}>{lightboxTrip.customer}</p>
+            </div>
+
+            <div style={{ background: "rgba(241,245,249,0.8)", borderRadius: 14, padding: "16px 18px", marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Trip Details</p>
+              <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Route</span><strong>{lightboxTrip.from} → {lightboxTrip.to}</strong></div>
+              <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Vehicle</span><strong>{lightboxTrip.vehicle}</strong></div>
+              <div className="lightbox-row" style={{ border: "none" }}><span style={{ color: "var(--text-muted)" }}>Dates</span><strong>{lightboxTrip.start_date}{lightboxTrip.end_date && lightboxTrip.end_date !== lightboxTrip.start_date ? ` → ${lightboxTrip.end_date}` : ""}</strong></div>
+            </div>
+
+            <div style={{ background: "rgba(241,245,249,0.8)", borderRadius: 14, padding: "16px 18px" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Financials</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+                <div className="lightbox-row"><span style={{ color: "var(--text-muted)" }}>Deal Price</span><strong style={{ color: "var(--accent-primary)" }}>₹{Number(lightboxTrip.deal).toLocaleString("en-IN")}</strong></div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginTop: 16 }}>Click outside to close</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

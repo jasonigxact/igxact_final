@@ -671,6 +671,9 @@ def get_dashboard_data(
     else:
         df_targets = df_all_statuses
 
+    # All statuses for trip count; non-cancelled only for revenue target comparison
+    df_targets_non_cancelled = df_targets[~df_targets["Status"].str.contains("cancel", na=False)] if not df_targets.empty else df_targets
+
     monthly_all = (
         df_targets.groupby("MonthNum")
         .agg(
@@ -681,10 +684,17 @@ def get_dashboard_data(
         .reset_index()
     ) if not df_targets.empty else pd.DataFrame()
 
+    monthly_excl_cancelled = (
+        df_targets_non_cancelled.groupby("MonthNum")
+        .agg(RevenueExclCancelled=(REVENUE_COL, "sum"))
+        .reset_index()
+    ) if not df_targets_non_cancelled.empty else pd.DataFrame()
+
     month_targets = []
     for i in range(3):
         m = ((current_month - 1 + i) % 12) + 1
         row_data = monthly_all[monthly_all["MonthNum"] == m] if not monthly_all.empty else pd.DataFrame()
+        row_excl  = monthly_excl_cancelled[monthly_excl_cancelled["MonthNum"] == m] if not monthly_excl_cancelled.empty else pd.DataFrame()
         if not row_data.empty:
             rev = safe_float(row_data.iloc[0]["Revenue"])
             trips_n = int(row_data.iloc[0]["Trips"])
@@ -692,14 +702,16 @@ def get_dashboard_data(
         else:
             rev, trips_n = 0.0, 0
             name = datetime(2024, m, 1).strftime("%B")
+        rev_excl = safe_float(row_excl.iloc[0]["RevenueExclCancelled"]) if not row_excl.empty else rev
         target_amt = get_monthly_target_for_month(current_year, m)
         month_targets.append({
             "month": name,
             "revenue": rev,
+            "revenue_excl_cancelled": rev_excl,
             "trips": trips_n,
             "target": target_amt,
-            "pct": round((rev / target_amt * 100) if target_amt > 0 else 0, 1),
-            "status": "green" if rev >= target_amt else "red",
+            "pct": round((rev_excl / target_amt * 100) if target_amt > 0 else 0, 1),
+            "status": "green" if rev_excl >= target_amt else "red",
         })
 
     # ── Profit by duration ──────────────────────────────────────────────────

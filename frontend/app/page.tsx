@@ -193,8 +193,13 @@ export default function Home() {
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingTarget(false); }
   };
-  const progressTrips = data?.pipeline?.progress || [];
-  const bookedTrips   = data?.pipeline?.booked   || [];
+  const sortByDate = (trips: any[]) => [...trips].sort((a, b) => {
+    const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
+    const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
+    return da - db;
+  });
+  const progressTrips = sortByDate(data?.pipeline?.progress || []);
+  const bookedTrips   = sortByDate(data?.pipeline?.booked   || []);
   const doneTrips     = data?.pipeline?.done     || [];
   const progressTotal    = progressTrips.reduce((a: number, b: any) => a + (b["Deal Price"] || 0), 0);
   const progressReceived = progressTrips.reduce((a: number, b: any) => a + (b["Received"]   || 0), 0);
@@ -350,14 +355,15 @@ export default function Home() {
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {monthTargets.map((m: any, i: number) => {
-                const remaining = Math.max(m.target - m.revenue, 0);
-                const pct = m.target ? (m.revenue / m.target) * 100 : 0;
+                const effectiveRevenue = m.revenue_excl_cancelled ?? m.revenue;
+                const remaining = Math.max(m.target - effectiveRevenue, 0);
+                const pct = m.target ? (effectiveRevenue / m.target) * 100 : 0;
                 const isGreen = m.status === "green";
                 return (
                   <div key={i} className={`target-card ${isGreen ? "green" : "red"}`}>
                     <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{m.month}</p>
                     <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: isGreen ? "var(--accent-green)" : "var(--accent-red)" }}>
-                      ₹{m.revenue.toLocaleString("en-IN")}
+                      ₹{effectiveRevenue.toLocaleString("en-IN")}
                     </p>
                     <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{m.trips} trips</p>
                     <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>Target: ₹{m.target.toLocaleString("en-IN")}</p>
