@@ -442,8 +442,9 @@ def get_dashboard_data(
         overall_pending     = 0.0
         current_year_deal   = 0.0
 
-    # ── KPIs (always off completed trips) ──────────────────────────────────
-    total_revenue = safe_float(df_completed[REVENUE_COL].sum())
+    # ── KPIs — revenue = all trips except cancelled ─────────────────────────
+    df_excl_cancelled = df[~df["Status"].str.contains("cancel", na=False)]
+    total_revenue = safe_float(df_excl_cancelled[REVENUE_COL].sum())
     total_expense = safe_float(df_completed["TotalExpense"].sum())
     total_profit = total_revenue - total_expense
     profit_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue != 0 else 0.0
