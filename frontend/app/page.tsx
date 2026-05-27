@@ -350,7 +350,7 @@ export default function Home() {
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {monthTargets.map((m: any, i: number) => {
-                const effectiveRevenue = m.revenue_excl_cancelled ?? m.revenue;
+                const effectiveRevenue = m.revenue;
                 const exceeded  = m.target > 0 && effectiveRevenue > m.target;
                 const remaining = exceeded ? 0 : Math.max(m.target - effectiveRevenue, 0);
                 const exceededAmt = exceeded ? effectiveRevenue - m.target : 0;

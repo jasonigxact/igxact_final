@@ -442,9 +442,8 @@ def get_dashboard_data(
         overall_pending     = 0.0
         current_year_deal   = 0.0
 
-    # ── KPIs — revenue = all trips except cancelled ─────────────────────────
-    df_excl_cancelled = df[~df["Status"].str.contains("cancel", na=False)]
-    total_revenue = safe_float(df_excl_cancelled[REVENUE_COL].sum())
+    # ── KPIs (always off completed trips) ──────────────────────────────────
+    total_revenue = safe_float(df_completed[REVENUE_COL].sum())
     total_expense = safe_float(df_completed["TotalExpense"].sum())
     total_profit = total_revenue - total_expense
     profit_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue != 0 else 0.0
@@ -672,27 +671,36 @@ def get_dashboard_data(
     else:
         df_targets = df_all_statuses
 
+    # Exclude cancelled from revenue used for target comparison
+    df_targets_excl = df_targets[~df_targets["Status"].str.contains("cancel", na=False)] if not df_targets.empty else df_targets
+
     monthly_all = (
         df_targets.groupby("MonthNum")
         .agg(
             Month=("MonthName", "first"),
             Trips=(REVENUE_COL, "count"),
-            Revenue=(REVENUE_COL, "sum"),
         )
         .reset_index()
     ) if not df_targets.empty else pd.DataFrame()
+
+    monthly_revenue = (
+        df_targets_excl.groupby("MonthNum")
+        .agg(Revenue=(REVENUE_COL, "sum"))
+        .reset_index()
+    ) if not df_targets_excl.empty else pd.DataFrame()
 
     month_targets = []
     for i in range(3):
         m = ((current_month - 1 + i) % 12) + 1
         row_data = monthly_all[monthly_all["MonthNum"] == m] if not monthly_all.empty else pd.DataFrame()
+        row_rev  = monthly_revenue[monthly_revenue["MonthNum"] == m] if not monthly_revenue.empty else pd.DataFrame()
         if not row_data.empty:
-            rev = safe_float(row_data.iloc[0]["Revenue"])
             trips_n = int(row_data.iloc[0]["Trips"])
             name = row_data.iloc[0]["Month"]
         else:
-            rev, trips_n = 0.0, 0
+            trips_n = 0
             name = datetime(2024, m, 1).strftime("%B")
+        rev = safe_float(row_rev.iloc[0]["Revenue"]) if not row_rev.empty else 0.0
         target_amt = get_monthly_target_for_month(current_year, m)
         month_targets.append({
             "month": name,
