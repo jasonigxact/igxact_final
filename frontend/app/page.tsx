@@ -193,13 +193,8 @@ export default function Home() {
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingTarget(false); }
   };
-  const sortByDate = (trips: any[]) => [...trips].sort((a, b) => {
-    const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
-    const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
-    return da - db;
-  });
-  const progressTrips = sortByDate(data?.pipeline?.progress || []);
-  const bookedTrips   = sortByDate(data?.pipeline?.booked   || []);
+  const progressTrips = data?.pipeline?.progress || [];
+  const bookedTrips   = data?.pipeline?.booked   || [];
   const doneTrips     = data?.pipeline?.done     || [];
   const progressTotal    = progressTrips.reduce((a: number, b: any) => a + (b["Deal Price"] || 0), 0);
   const progressReceived = progressTrips.reduce((a: number, b: any) => a + (b["Received"]   || 0), 0);
@@ -356,7 +351,10 @@ export default function Home() {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {monthTargets.map((m: any, i: number) => {
                 const effectiveRevenue = m.revenue_excl_cancelled ?? m.revenue;
-                const remaining = Math.max(m.target - effectiveRevenue, 0);
+                const exceeded  = m.target > 0 && effectiveRevenue > m.target;
+                const remaining = exceeded ? 0 : Math.max(m.target - effectiveRevenue, 0);
+                const exceededAmt = exceeded ? effectiveRevenue - m.target : 0;
+                const exceededPct = exceeded && m.target > 0 ? ((exceededAmt / m.target) * 100).toFixed(1) : "0";
                 const pct = m.target ? (effectiveRevenue / m.target) * 100 : 0;
                 const isGreen = m.status === "green";
                 return (
@@ -367,9 +365,11 @@ export default function Home() {
                     </p>
                     <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{m.trips} trips</p>
                     <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>Target: ₹{m.target.toLocaleString("en-IN")}</p>
-                    {remaining === 0
-                      ? <p style={{ fontSize: 11, color: "var(--accent-green)", marginTop: 4, fontWeight: 600 }}>✓ Achieved</p>
-                      : <p style={{ fontSize: 11, color: "var(--accent-orange)", marginTop: 4 }}>₹{remaining.toLocaleString("en-IN")} left</p>
+                    {exceeded
+                      ? <p style={{ fontSize: 11, color: "var(--accent-green)", marginTop: 4, fontWeight: 600 }}>🎯 Exceeded by ₹{exceededAmt.toLocaleString("en-IN")} ({exceededPct}%)</p>
+                      : remaining === 0
+                        ? <p style={{ fontSize: 11, color: "var(--accent-green)", marginTop: 4, fontWeight: 600 }}>✓ Achieved</p>
+                        : <p style={{ fontSize: 11, color: "var(--accent-orange)", marginTop: 4 }}>₹{remaining.toLocaleString("en-IN")} left</p>
                     }
                     <div className="progress-bar">
                       <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: isGreen ? "var(--accent-green)" : "linear-gradient(90deg,#f87171,#ef4444)" }} />
