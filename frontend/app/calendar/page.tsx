@@ -97,7 +97,7 @@ export default function CalendarPage() {
     acc[s] = (acc[s] || 0) + 1;
     return acc;
   }, {});
-  const totalDeal = trips.reduce((s, t) => s + t.deal, 0);
+  const totalDeal = trips.filter(t => !t.status.toLowerCase().includes("cancel")).reduce((s, t) => s + t.deal, 0);
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-main)", fontFamily: "var(--font-body)", overflow: "hidden" }}>
@@ -193,7 +193,7 @@ export default function CalendarPage() {
                           color: sc.text, overflow: "hidden",
                           whiteSpace: "nowrap", textOverflow: "ellipsis", lineHeight: "14px",
                         }}>
-                          {t.from}
+                          {t.from}→{t.to}
                         </div>
                       );
                     })}
@@ -214,7 +214,7 @@ export default function CalendarPage() {
       {lightboxDate && (() => {
         const lbTrips = tripsByDate[lightboxDate] || [];
         const lbLabel = new Date(lightboxDate + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-        const lbTotal = lbTrips.reduce((s, t) => s + t.deal, 0);
+        const lbTotal = lbTrips.filter(t => !t.status.toLowerCase().includes("cancel")).reduce((s, t) => s + t.deal, 0);
         return (
           <div className="lightbox-overlay" onClick={() => setLightboxDate(null)}>
             <div className="lightbox-box" onClick={e => e.stopPropagation()}>
