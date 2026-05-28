@@ -104,7 +104,7 @@ export default function DriversPage() {
 
   const openEdit = (d: Driver) => {
     setForm({
-      name: d.name, father_name: d.father_name, age: d.age, dob: d.dob, salary: d.salary || "",
+      name: d.name, father_name: d.father_name, age: d.age, dob: d.dob,
       mobile_num: d.mobile_num, mobile_num2: d.mobile_num2,
       present_address: d.present_address, permanent_address: d.permanent_address,
       aadhaar_number: d.aadhaar_number,
