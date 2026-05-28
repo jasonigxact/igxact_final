@@ -338,12 +338,26 @@ def query_trips(
     df_booked    = df[df["Status"].str.contains("booked", na=False)]
     df_done      = df[df["Status"].str.contains("done", na=False)]
 
+    # Vehicle-wise expense breakdown for monthly chart
+    veh_expense_chart = []
+    if "Vehicle Details" in df.columns:
+        veh_groups = df.groupby("Vehicle Details")
+        for veh, vdf in veh_groups:
+            if not str(veh).strip():
+                continue
+            entry = {"vehicle": str(veh).strip()}
+            for col in EXPENSE_COLS:
+                entry[col] = safe_float(vdf[col].sum()) if col in vdf.columns else 0.0
+            entry["total"] = sum(entry[col] for col in EXPENSE_COLS)
+            veh_expense_chart.append(entry)
+
     return {
         "completed": _safe_summary(df_completed),
         "progress":  _safe_summary(df_progress),
         "booked":    _safe_summary(df_booked),
         "done":      _safe_summary(df_done),
         "trips": df.fillna("").to_dict(orient="records"),
+        "vehicle_expense_breakdown": veh_expense_chart,
     }
 
 
@@ -442,12 +456,14 @@ def get_dashboard_data(
         overall_pending     = 0.0
         current_year_deal   = 0.0
 
-    # ── KPIs — revenue = all trips except cancelled ─────────────────────────
+    # ── KPIs ─────────────────────────────────────────────────────────────────
     df_excl_cancelled = df[~df["Status"].str.contains("cancel", na=False)]
     total_revenue = safe_float(df_excl_cancelled[REVENUE_COL].sum())
+    # Profit = completed revenue - completed expenses only
+    completed_revenue = safe_float(df_completed[REVENUE_COL].sum())
     total_expense = safe_float(df_completed["TotalExpense"].sum())
-    total_profit = total_revenue - total_expense
-    profit_pct = round((total_profit / total_revenue) * 100, 2) if total_revenue != 0 else 0.0
+    total_profit = completed_revenue - total_expense
+    profit_pct = round((total_profit / completed_revenue) * 100, 2) if completed_revenue != 0 else 0.0
     avg_deal = safe_float(df_completed[REVENUE_COL].mean())
     avg_days = safe_float(df_completed["Number of Days"].mean()) if "Number of Days" in df_completed.columns else 0.0
     cash_total = safe_float(df_completed["Total Cash"].sum()) if "Total Cash" in df_completed.columns else 0.0
@@ -738,6 +754,7 @@ def get_dashboard_data(
         "kpi": {
             "total_revenue": round(total_revenue, 2),
             "total_profit": round(total_profit, 2),
+            "total_expense": round(total_expense, 2),
             "avg_margin": round(profit_pct, 2),
             "avg_deal": round(avg_deal, 2),
             "avg_days": round(avg_days, 2),
@@ -799,6 +816,7 @@ def _empty_dashboard() -> dict:
         "kpi": {
             "total_revenue": 0,
             "total_profit": 0,
+            "total_expense": 0,
             "avg_margin": 0,
             "avg_deal": 0,
             "avg_days": 0,

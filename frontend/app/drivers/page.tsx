@@ -23,7 +23,7 @@ const EMPTY_FORM: Omit<Driver, "_row"> = {
   name: "", father_name: "", age: "", dob: "",
   mobile_num: "", mobile_num2: "",
   present_address: "", permanent_address: "",
-  aadhaar_number: "", driving_licence_number: "", dl_expiry: "",
+  aadhaar_number: "", driving_licence_number: "", dl_expiry: "", salary: "",
 };
 
 const Spinner = () => (
@@ -103,7 +103,7 @@ export default function DriversPage() {
 
   const openEdit = (d: Driver) => {
     setForm({
-      name: d.name, father_name: d.father_name, age: d.age, dob: d.dob,
+      name: d.name, father_name: d.father_name, age: d.age, dob: d.dob, salary: d.salary || "",
       mobile_num: d.mobile_num, mobile_num2: d.mobile_num2,
       present_address: d.present_address, permanent_address: d.permanent_address,
       aadhaar_number: d.aadhaar_number,
@@ -226,7 +226,7 @@ export default function DriversPage() {
                       <div>
                         <p style={{ fontWeight: 700, fontSize: 16, color: "var(--text-primary)" }}>{d.name}</p>
                         <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          {d.father_name && `S/O ${d.father_name} • `}Age: {d.age || "—"} • 📞 {d.mobile_num}
+                          {d.father_name && `S/O ${d.father_name} • `}Age: {d.age || "—"} • 📞 {d.mobile_num}{d.salary ? ` • ₹${Number(d.salary).toLocaleString("en-IN")}/mo` : ""}
                           {d.mobile_num2 && ` / ${d.mobile_num2}`}
                         </p>
                       </div>
@@ -365,6 +365,10 @@ export default function DriversPage() {
                 <div>
                   <Label text="DL Expiry Date" />
                   <input value={form.dl_expiry} onChange={e => setField("dl_expiry", e.target.value)} style={inputStyle} type="date" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Monthly Salary (₹)</label>
+                  <input value={form.salary} onChange={e => setField("salary", e.target.value)} style={inputStyle} placeholder="e.g. 25000" type="number" />
                 </div>
               </div>
             </div>

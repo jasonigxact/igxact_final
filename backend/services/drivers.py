@@ -33,6 +33,7 @@ COLUMNS = [
     "aadhaar_number",
     "driving_licence_number",
     "dl_expiry",
+    "salary",
 ]
 
 

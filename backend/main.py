@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from auth import router as auth_router
+from expenses_router import expenses_router
 from crm_router import crm_router
 from records_router import records_router
 from targets_router import targets_router
@@ -54,6 +55,7 @@ app.include_router(auth_router)
 app.include_router(crm_router)
 app.include_router(records_router)
 app.include_router(targets_router)
+app.include_router(expenses_router)
 
 
 # ─── Global validation error handler ─────────────────────────────────────────
@@ -204,12 +206,14 @@ def get_calendar(
     else:
         df["End date parsed"] = pd.NaT
 
+    # Include trips that OVERLAP the selected month
+    # (started before month end AND ended after month start)
     if "Start Date" in df.columns:
-        mask = (
-            (df["Start Date"].dt.year  == y) &
-            (df["Start Date"].dt.month == m)
-        )
-        df = df[mask]
+        month_start = pd.Timestamp(year=y, month=m, day=1)
+        month_end   = pd.Timestamp(year=y, month=m, day=pd.Timestamp(year=y, month=m, day=1).days_in_month)
+        start_ok = df["Start Date"] <= month_end
+        end_ok   = df["End date parsed"].fillna(df["Start Date"]) >= month_start
+        df = df[start_ok & end_ok]
 
     trips = []
     for _, row in df.iterrows():

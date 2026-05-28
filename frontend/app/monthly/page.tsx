@@ -84,6 +84,9 @@ useEffect(() => {
   const progress  = data?.progress  || {};
   const booked    = data?.booked    || {};
   const done      = data?.done      || {};
+  const vehicleExpenses: any[] = data?.vehicle_expense_breakdown || [];
+  const EXPENSE_COLORS = ["#2563eb","#f97316","#22d3a0","#a855f7","#f43f5e","#eab308"];
+  const EXPENSE_KEYS   = ["Fuel","Tolls & Taxes","Parking","Driver Allowance","Sales Commission","Other Expenses"];
   const cancelled = data?.cancelled || {};
   const totalExclCancelled = [completed, progress, booked, done].reduce(
     (sum, s) => sum + (s.revenue || 0), 0
@@ -281,6 +284,28 @@ useEffect(() => {
             <p style={{ color: "var(--text-secondary)", fontSize: 15, marginBottom: 6 }}>No data for selected range</p>
             <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Try adjusting the date filters above</p>
           </div>
+        )}
+
+        {/* Vehicle-wise Expense Breakdown */}
+        {vehicleExpenses.length > 0 && (
+          <section className="section">
+            <div className="section-header">
+              <h2 className="section-title">Vehicle-wise Expense Breakdown</h2>
+            </div>
+            <div className="chart-card">
+              <ResponsiveContainer width="100%" height={360}>
+                <BarChart data={vehicleExpenses} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+                  <XAxis dataKey="vehicle" angle={-30} textAnchor="end" height={70} tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
+                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.97)", border: "1px solid rgba(0,0,0,0.10)", borderRadius: 14, fontFamily: "var(--font-body)", fontSize: 12 }} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                  <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 11, paddingTop: 8 }} />
+                  {EXPENSE_KEYS.map((key, i) => (
+                    <Bar key={key} dataKey={key} stackId="a" fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} radius={i === EXPENSE_KEYS.length - 1 ? [4,4,0,0] : [0,0,0,0]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
         )}
 
       </div>

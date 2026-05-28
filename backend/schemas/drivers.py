@@ -33,6 +33,7 @@ class DriverCreate(BaseModel):
     aadhaar_number:          Optional[str] = Field(None, max_length=20)
     driving_licence_number:  Optional[str] = Field(None, max_length=30)
     dl_expiry:               Optional[str] = Field(None)
+    salary:                  Optional[str] = Field(None, max_length=20)
 
     @validator("dob", "dl_expiry", pre=True)
     def validate_date(cls, v):

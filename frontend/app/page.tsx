@@ -323,6 +323,7 @@ export default function Home() {
             <KpiCard label={`${data?.active_year || new Date().getFullYear()} Total Deal`} value={`₹${(data?.overall?.current_year_deal || 0).toLocaleString("en-IN")}`} accent="#0ea5e9" icon="📆" />
             <KpiCard label="Total Revenue"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
             <KpiCard label="Total Profit"   value={`₹${(kpi.total_profit  || 0).toLocaleString("en-IN")}`} accent="var(--accent-green)"   icon="📈" />
+            <KpiCard label="Total Expenses" value={`₹${(kpi.total_expense || 0).toLocaleString("en-IN")}`} accent="#f43f5e" icon="💸" />
             <KpiCard label="Other Expenses" value={`₹${otherExpenses.toLocaleString("en-IN")}`}            accent="#f43f5e"               icon="📉" />
             <KpiCard label="Avg Margin"     value={`${kpi.avg_margin ?? 0}%`}                                                              icon="🎯" />
             <KpiCard label="Avg Deal Size"  value={`₹${(kpi.avg_deal  || 0).toLocaleString("en-IN")}`}                                    icon="🤝" />
