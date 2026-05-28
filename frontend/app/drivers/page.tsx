@@ -17,6 +17,7 @@ type Driver = {
   aadhaar_number: string;
   driving_licence_number: string;
   dl_expiry: string;
+  salary?: string;
 };
 
 const EMPTY_FORM: Omit<Driver, "_row"> = {
@@ -107,7 +108,7 @@ export default function DriversPage() {
       mobile_num: d.mobile_num, mobile_num2: d.mobile_num2,
       present_address: d.present_address, permanent_address: d.permanent_address,
       aadhaar_number: d.aadhaar_number,
-      driving_licence_number: d.driving_licence_number, dl_expiry: d.dl_expiry,
+      driving_licence_number: d.driving_licence_number, dl_expiry: d.dl_expiry, salary: d.salary || "",
     });
     setEditRow(d._row);
     setModalMode("edit");
