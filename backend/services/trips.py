@@ -172,6 +172,8 @@ def get_monthly_target_for_month(year: int, month: int) -> float:
 
 
 def add_vehicle(name: str) -> dict:
+    from datetime import date as _date
+
     name = name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Vehicle name is required")
@@ -187,8 +189,28 @@ def add_vehicle(name: str) -> dict:
     if name.lower() in existing_names:
         return {"msg": "Already exists"}
 
-    ws.append_row([name])
-    return {"msg": "Vehicle added"}
+    # Read header to place name and added_date in the correct columns
+    all_values = ws.get_all_values()
+    header = [h.strip().lower() for h in (all_values[0] if all_values else [])]
+
+    today_str = _date.today().strftime("%m/%d/%Y")
+
+    # Ensure added_date column exists in header
+    if "added_date" not in header:
+        date_col_idx = len(header) + 1
+        ws.update_cell(1, date_col_idx, "added_date")
+        header.append("added_date")
+
+    name_col = header.index("vehicle name") if "vehicle name" in header else 0
+    date_col = header.index("added_date")
+    row_size = max(name_col, date_col) + 1
+    new_row  = [""] * row_size
+    new_row[name_col] = name
+    new_row[date_col] = today_str
+
+    ws.append_row(new_row)
+    logger.info(f"add_vehicle: added '{name}' with added_date={today_str}")
+    return {"msg": "Vehicle added", "name": name, "added_date": today_str}
 
 
 # ─────────────────────────────────────────────
