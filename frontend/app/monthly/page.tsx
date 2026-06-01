@@ -287,7 +287,65 @@ useEffect(() => {
         )}
 
         {/* Vehicle-wise Expense Breakdown */}
-        {vehicleExpenses.length > 0 && (\n          <section className="section">\n            <div className="section-header">\n              <h2 className="section-title">Vehicle-wise Expense Breakdown</h2>\n            </div>\n            <div className="chart-card">\n              <ResponsiveContainer width="100%" height={360}>\n                <BarChart data={vehicleExpenses} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>\n                  <XAxis dataKey="vehicle" angle={-30} textAnchor="end" height={70} tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />\n                  <YAxis tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />\n                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.97)", border: "1px solid rgba(0,0,0,0.10)", borderRadius: 14, fontFamily: "var(--font-body)", fontSize: 12 }} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />\n                  <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 11, paddingTop: 8 }} />\n                  {EXPENSE_KEYS.map((key, i) => (\n                    <Bar key={key} dataKey={key} stackId="a" fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} radius={i === EXPENSE_KEYS.length - 1 ? [4,4,0,0] : [0,0,0,0]} />\n                  ))}\n                </BarChart>\n              </ResponsiveContainer>\n            </div>\n            {/* Percentage table */}\n            {(() => {\n              const grandTotal = vehicleExpenses.reduce((sum: number, v: any) => sum + EXPENSE_KEYS.reduce((s, k) => s + (Number(v[k]) || 0), 0), 0);\n              return grandTotal > 0 ? (\n                <div style={{ marginTop: 18, overflowX: "auto" }}>\n                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>\n                    <thead>\n                      <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>\n                        <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Vehicle</th>\n                        {EXPENSE_KEYS.map(k => <th key={k} style={{ padding: "8px 10px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>{k}</th>)}\n                        <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Total</th>\n                        <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Share %</th>\n                      </tr>\n                    </thead>\n                    <tbody>\n                      {vehicleExpenses.map((v: any, i: number) => {\n                        const rowTotal = EXPENSE_KEYS.reduce((s, k) => s + (Number(v[k]) || 0), 0);\n                        const pct = grandTotal > 0 ? ((rowTotal / grandTotal) * 100).toFixed(1) : "0.0";\n                        return (\n                          <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)" }}>\n                            <td style={{ padding: "9px 12px", fontWeight: 600 }}>🚗 {v.vehicle}</td>\n                            {EXPENSE_KEYS.map(k => <td key={k} style={{ padding: "9px 10px", textAlign: "right", color: "var(--text-secondary)" }}>₹{(Number(v[k]) || 0).toLocaleString("en-IN")}</td>)}\n                            <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700 }}>₹{rowTotal.toLocaleString("en-IN")}</td>\n                            <td style={{ padding: "9px 12px", textAlign: "right" }}>\n                              <span style={{ background: "rgba(37,99,235,0.10)", color: "var(--accent-primary)", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 6 }}>{pct}%</span>\n                            </td>\n                          </tr>\n                        );\n                      })}\n                      <tr style={{ borderTop: "2px solid var(--border-subtle)", background: "rgba(37,99,235,0.03)" }}>\n                        <td style={{ padding: "9px 12px", fontWeight: 800 }}>Total</td>\n                        {EXPENSE_KEYS.map(k => <td key={k} style={{ padding: "9px 10px", textAlign: "right", fontWeight: 700 }}>₹{vehicleExpenses.reduce((s: number, v: any) => s + (Number(v[k]) || 0), 0).toLocaleString("en-IN")}</td>)}\n                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 800 }}>₹{grandTotal.toLocaleString("en-IN")}</td>\n                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700 }}>100%</td>\n                      </tr>\n                    </tbody>\n                  </table>\n                </div>\n              ) : null;\n            })()}\n          </section>\n        )}
+        {vehicleExpenses.length > 0 && (
+          <section className="section">
+            <div className="section-header">
+              <h2 className="section-title">Vehicle-wise Expense Breakdown</h2>
+            </div>
+            <div className="chart-card">
+              <ResponsiveContainer width="100%" height={360}>
+                <BarChart data={vehicleExpenses} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+                  <XAxis dataKey="vehicle" angle={-30} textAnchor="end" height={70} tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
+                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.97)", border: "1px solid rgba(0,0,0,0.10)", borderRadius: 14, fontFamily: "var(--font-body)", fontSize: 12 }} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                  <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 11, paddingTop: 8 }} />
+                  {EXPENSE_KEYS.map((key, i) => (
+                    <Bar key={key} dataKey={key} stackId="a" fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} radius={i === EXPENSE_KEYS.length - 1 ? [4,4,0,0] : [0,0,0,0]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {(() => {
+              const grandTotal = vehicleExpenses.reduce((sum: number, v: any) => sum + EXPENSE_KEYS.reduce((s, k) => s + (Number(v[k]) || 0), 0), 0);
+              return grandTotal > 0 ? (
+                <div style={{ marginTop: 18, overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>
+                        <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Vehicle</th>
+                        {EXPENSE_KEYS.map(k => <th key={k} style={{ padding: "8px 10px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>{k}</th>)}
+                        <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Total</th>
+                        <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Share %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vehicleExpenses.map((v: any, i: number) => {
+                        const rowTotal = EXPENSE_KEYS.reduce((s, k) => s + (Number(v[k]) || 0), 0);
+                        const pct = grandTotal > 0 ? ((rowTotal / grandTotal) * 100).toFixed(1) : "0.0";
+                        return (
+                          <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)" }}>
+                            <td style={{ padding: "9px 12px", fontWeight: 600 }}>🚗 {v.vehicle}</td>
+                            {EXPENSE_KEYS.map(k => <td key={k} style={{ padding: "9px 10px", textAlign: "right", color: "var(--text-secondary)" }}>₹{(Number(v[k]) || 0).toLocaleString("en-IN")}</td>)}
+                            <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700 }}>₹{rowTotal.toLocaleString("en-IN")}</td>
+                            <td style={{ padding: "9px 12px", textAlign: "right" }}>
+                              <span style={{ background: "rgba(37,99,235,0.10)", color: "var(--accent-primary)", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 6 }}>{pct}%</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr style={{ borderTop: "2px solid var(--border-subtle)", background: "rgba(37,99,235,0.03)" }}>
+                        <td style={{ padding: "9px 12px", fontWeight: 800 }}>Total</td>
+                        {EXPENSE_KEYS.map(k => <td key={k} style={{ padding: "9px 10px", textAlign: "right", fontWeight: 700 }}>₹{vehicleExpenses.reduce((s: number, v: any) => s + (Number(v[k]) || 0), 0).toLocaleString("en-IN")}</td>)}
+                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 800 }}>₹{grandTotal.toLocaleString("en-IN")}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700 }}>100%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : null;
+            })()}
+          </section>
+        )}
 
       </div>
     </div>
