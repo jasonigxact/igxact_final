@@ -51,6 +51,7 @@ export default function TripsPage() {
   const [loading, setLoading]     = useState(false);
   const [saving, setSaving]       = useState(false);
   const [vehicles, setVehicles]   = useState<string[]>([]);
+  const [drivers, setDrivers]     = useState<any[]>([]);
   const [tripId, setTripId]       = useState("");
   const [mobile, setMobile]       = useState("");
   const [role, setRole]           = useState<string | null>(null);
@@ -81,6 +82,15 @@ export default function TripsPage() {
       .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(data => setVehicles(data.vehicles || []))
       .catch(() => toast.error("Failed to load vehicles"));
+  }, [role]);
+
+  // ── Load drivers ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!role) return;
+    apiFetch("/drivers")
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(data => setDrivers(Array.isArray(data) ? data : (data.drivers || [])))
+      .catch(() => {});
   }, [role]);
 
   // ── Auto-calculate Number of Days ─────────────────────────────────────────
@@ -338,14 +348,70 @@ export default function TripsPage() {
                 return (
                   <div key={col}>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{col}</label>
-                    <select className="input-field" value={form[col] || ""} onChange={e => setForm((p: any) => ({ ...p, [col]: e.target.value }))}>
-                      <option value="">Select vehicle</option>
-                      {vehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <select className="input-field" style={{ flex: 1 }} value={form[col] || ""} onChange={e => setForm((p: any) => ({ ...p, [col]: e.target.value }))}>
+                        <option value="">Select vehicle</option>
+                        {vehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const name = window.prompt("Enter new vehicle name:");
+                          if (!name?.trim()) return;
+                          try {
+                            const res = await apiFetch("/vehicles", { method: "POST", body: JSON.stringify({ name: name.trim() }) });
+                            if (!res.ok) { const d = await res.json(); toast.error(d.detail || "Failed"); return; }
+                            toast.success(`Vehicle "${name.trim()}" added!`);
+                            const updated = await apiFetch("/vehicles").then(r => r.json());
+                            setVehicles(updated.vehicles || []);
+                            setForm((p: any) => ({ ...p, [col]: name.trim() }));
+                          } catch (e: any) { toast.error(e.message); }
+                        }}
+                        style={{ padding: "0 12px", borderRadius: 8, border: "1px solid rgba(37,99,235,0.3)", background: "rgba(37,99,235,0.08)", color: "var(--accent-primary)", fontWeight: 700, fontSize: 18, cursor: "pointer", whiteSpace: "nowrap" }}
+                      >+</button>
+                    </div>
+                  </div>
+                );
+              }
+              if (col === "Driver Name") {
+                return (
+                  <div key={col}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Driver</label>
+                    <select
+                      className="input-field"
+                      value={form["Driver Name"] || ""}
+                      onChange={e => {
+                        const selected = drivers.find((d: any) => d.name === e.target.value);
+                        setForm((p: any) => ({
+                          ...p,
+                          "Driver Name": e.target.value,
+                          "Driver Contact": selected ? (selected.mobile_num || selected.mobile_num2 || "") : p["Driver Contact"] || "",
+                        }));
+                      }}
+                    >
+                      <option value="">Select driver</option>
+                      {drivers.map((d: any, i: number) => (
+                        <option key={i} value={d.name}>{d.name}{d.mobile_num ? ` — ${d.mobile_num}` : ""}</option>
+                      ))}
                     </select>
                   </div>
                 );
               }
-              if (col === "Status") {
+              if (col === "Driver Contact") {
+                return (
+                  <div key={col}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--accent-primary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Driver Contact ✦</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={form["Driver Contact"] || ""}
+                      readOnly
+                      placeholder="Auto-filled from driver"
+                      style={{ background: "rgba(37,99,235,0.05)", cursor: "not-allowed", color: "var(--accent-primary)", fontWeight: 600 }}
+                    />
+                  </div>
+                );
+              }
                 return (
                   <div key={col}>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{col}</label>

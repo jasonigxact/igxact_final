@@ -25,16 +25,11 @@ function getToken(): string | null {
 
 function setToken(token: string): void {
   sessionStorage.setItem("token", token);
-  sessionStorage.setItem(
-    "token_expires_at",
-    String(Date.now() + 14 * 60 * 1000)
-  );
 }
 
 function clearSession(): void {
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("role");
-  sessionStorage.removeItem("token_expires_at");
   window.location.href = "/login";
 }
 

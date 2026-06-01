@@ -215,6 +215,10 @@ def get_calendar(
         end_ok   = df["End date parsed"].fillna(df["Start Date"]) >= month_start
         df = df[start_ok & end_ok]
 
+    # Remove cancelled trips from calendar
+    if "Status" in df.columns:
+        df = df[~df["Status"].str.lower().str.strip().isin(["cancelled", "canceled"])]
+
     trips = []
     for _, row in df.iterrows():
         start = row.get("Start Date")

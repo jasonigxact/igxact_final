@@ -123,6 +123,10 @@ export default function Home() {
   const [targetYear, setTargetYear]           = useState(new Date().getFullYear());
   const [allTargets, setAllTargets]           = useState<any[]>([]);
   const [savingTarget, setSavingTarget]       = useState(false);
+  const [showAddVehicle, setShowAddVehicle]   = useState(false);
+  const [newVehicleName, setNewVehicleName]   = useState("");
+  const [addingVehicle, setAddingVehicle]     = useState(false);
+  const [tripSort, setTripSort]               = useState<"date"|"deal"|"id">("date");
   const [role]                                = useState(() => typeof window !== "undefined" ? (sessionStorage.getItem("role") || "").toLowerCase() : "");
   const { push } = useSmoothRouter();
   const router = useRouter();
@@ -193,6 +197,27 @@ export default function Home() {
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingTarget(false); }
   };
+  const addVehicle = async () => {
+    if (!newVehicleName.trim()) { toast.error("Vehicle name is required"); return; }
+    setAddingVehicle(true);
+    try {
+      const res = await apiFetch("/vehicles", { method: "POST", body: JSON.stringify({ name: newVehicleName.trim() }) });
+      if (!res.ok) { const d = await res.json(); toast.error(d.detail || "Failed to add vehicle"); return; }
+      toast.success(`Vehicle "${newVehicleName.trim()}" added!`);
+      setNewVehicleName("");
+      setShowAddVehicle(false);
+      fetchTargets();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setAddingVehicle(false); }
+  };
+
+  const sortTrips = (trips: any[]) => {
+    if (tripSort === "deal") return [...trips].sort((a, b) => (b["Deal Price"] || 0) - (a["Deal Price"] || 0));
+    if (tripSort === "id")   return [...trips].sort((a, b) => (b["trip id"] || 0) - (a["trip id"] || 0));
+    // default: date (newest first by trip id as proxy)
+    return [...trips].sort((a, b) => (b["trip id"] || 0) - (a["trip id"] || 0));
+  };
+
   const progressTrips = data?.pipeline?.progress || [];
   const bookedTrips   = data?.pipeline?.booked   || [];
   const doneTrips     = data?.pipeline?.done     || [];
@@ -320,8 +345,8 @@ export default function Home() {
         <section className="section fade-up" style={{ animationDelay: "0.05s" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
             <KpiCard label="All-Time Total Deal" value={`₹${(data?.overall?.total_deal || 0).toLocaleString("en-IN")}`} accent="#7c3aed" icon="🌐" />
-            <KpiCard label={`${data?.active_year || new Date().getFullYear()} Total Deal`} value={`₹${(data?.overall?.current_year_deal || 0).toLocaleString("en-IN")}`} accent="#0ea5e9" icon="📆" />
-            <KpiCard label="Total Revenue"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
+            <KpiCard label={`${data?.active_year || new Date().getFullYear()} Total Completed Trips Deal`} value={`₹${(data?.overall?.current_year_deal || 0).toLocaleString("en-IN")}`} accent="#0ea5e9" icon="📆" />
+            <KpiCard label="Total Revenue (excl. cancelled)"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
             <KpiCard label="Total Profit"   value={`₹${(kpi.total_profit  || 0).toLocaleString("en-IN")}`} accent="var(--accent-green)"   icon="📈" />
             <KpiCard label="Total Expenses" value={`₹${(kpi.total_expense || 0).toLocaleString("en-IN")}`} accent="#f43f5e" icon="💸" />
             <KpiCard label="Other Expenses" value={`₹${otherExpenses.toLocaleString("en-IN")}`}            accent="#f43f5e"               icon="📉" />
@@ -390,15 +415,24 @@ export default function Home() {
               <h2 className="section-title">In Progress</h2>
               <p className="section-subtitle">{progressTrips.length} active trip{progressTrips.length !== 1 ? "s" : ""}</p>
             </div>
-            <div className="section-summary-badge">
-              <span style={{ color: "var(--text-muted)" }}>Deal: <strong style={{ color: "var(--text-primary)" }}>₹{progressTotal.toLocaleString("en-IN")}</strong></span>
-              <span style={{ color: "var(--text-muted)" }}>Received: <strong style={{ color: "var(--accent-green)" }}>₹{progressReceived.toLocaleString("en-IN")}</strong></span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", gap: 6, background: "rgba(0,0,0,0.05)", borderRadius: 8, padding: 4 }}>
+                {(["date","deal","id"] as const).map(s => (
+                  <button key={s} onClick={() => setTripSort(s)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: tripSort === s ? "white" : "transparent", color: tripSort === s ? "var(--accent-primary)" : "var(--text-muted)", boxShadow: tripSort === s ? "0 1px 4px rgba(0,0,0,0.10)" : "none" }}>
+                    {s === "date" ? "Latest" : s === "deal" ? "Deal ↓" : "Trip ID"}
+                  </button>
+                ))}
+              </div>
+              <div className="section-summary-badge">
+                <span style={{ color: "var(--text-muted)" }}>Deal: <strong style={{ color: "var(--text-primary)" }}>₹{progressTotal.toLocaleString("en-IN")}</strong></span>
+                <span style={{ color: "var(--text-muted)" }}>Received: <strong style={{ color: "var(--accent-green)" }}>₹{progressReceived.toLocaleString("en-IN")}</strong></span>
+              </div>
             </div>
           </div>
           {progressTrips.length === 0
             ? <div className="empty-glass">No active trips</div>
             : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, maxHeight: 420, overflowY: "auto", paddingRight: 4 }}>
-                {progressTrips.map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
+                {sortTrips(progressTrips).map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
               </div>
           }
         </section>
@@ -418,7 +452,7 @@ export default function Home() {
           {bookedTrips.length === 0
             ? <div className="empty-glass">No booked trips</div>
             : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, maxHeight: 420, overflowY: "auto", paddingRight: 4 }}>
-                {bookedTrips.map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
+                {sortTrips(bookedTrips).map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
               </div>
           }
         </section>
@@ -437,7 +471,7 @@ export default function Home() {
           {doneTrips.length === 0
             ? <div className="empty-glass" style={{ fontSize:13 }}>No done trips</div>
             : <div className="trip-grid">
-                {doneTrips.map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
+                {sortTrips(doneTrips).map((trip: any, i: number) => <TripCard key={i} trip={trip} onClick={() => setSelectedTrip(trip)} />)}
               </div>
           }
         </div>
@@ -777,8 +811,30 @@ export default function Home() {
                 <h2 style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:800 }}>⚙️ Vehicle Targets</h2>
                 <p style={{ fontSize:12, color:"var(--text-muted)", marginTop:3 }}>Monthly target = sum of all vehicle targets</p>
               </div>
-              <button onClick={() => setShowTargetModal(false)} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"var(--text-muted)" }}>×</button>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <button onClick={() => setShowAddVehicle(v => !v)} style={{ fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:8, border:"1px solid rgba(37,99,235,0.3)", background:"rgba(37,99,235,0.08)", color:"var(--accent-primary)", cursor:"pointer" }}>
+                  {showAddVehicle ? "Cancel" : "+ Add Vehicle"}
+                </button>
+                <button onClick={() => setShowTargetModal(false)} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"var(--text-muted)" }}>×</button>
+              </div>
             </div>
+
+            {/* Add Vehicle inline form */}
+            {showAddVehicle && (
+              <div style={{ display:"flex", gap:8, marginBottom:16, padding:"12px 14px", background:"rgba(37,99,235,0.05)", borderRadius:10, border:"1px solid rgba(37,99,235,0.15)" }}>
+                <input
+                  type="text"
+                  placeholder="Vehicle name e.g. Innova Crysta"
+                  value={newVehicleName}
+                  onChange={e => setNewVehicleName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addVehicle()}
+                  style={{ flex:1, padding:"8px 12px", borderRadius:8, border:"1px solid rgba(0,0,0,0.12)", fontSize:13, fontFamily:"var(--font-body)", outline:"none" }}
+                />
+                <button onClick={addVehicle} disabled={addingVehicle} style={{ padding:"8px 18px", borderRadius:8, background:"var(--accent-primary)", color:"white", border:"none", fontWeight:700, fontSize:13, cursor:"pointer", opacity: addingVehicle ? 0.7 : 1 }}>
+                  {addingVehicle ? "Adding…" : "Add"}
+                </button>
+              </div>
+            )}
 
             {/* Vehicle rows */}
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:20 }}>
