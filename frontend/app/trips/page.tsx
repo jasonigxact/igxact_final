@@ -412,6 +412,7 @@ export default function TripsPage() {
                   </div>
                 );
               }
+              if (col === "Status") {
                 return (
                   <div key={col}>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{col}</label>
