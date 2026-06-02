@@ -23,7 +23,7 @@ const datePickerStyles = `
   .react-datepicker__navigation-icon::before { border-color: #475569; }
 `;
 
-const SKIP_COLS = new Set(["trip id","Profit Percentage","Net Profit (without Driver Salary)","Profit without commission"]);
+const SKIP_COLS = new Set(["trip id","Profit Percentage","Net Profit (without Driver Salary)","Profit without commission","Driver Name","Driver Contact"]);
 const NUM_COLS  = new Set(["Deal Price","Fuel","Tolls & Taxes","Parking","Driver Allowance","Sales Commission","Number of Days","Other Expenses","Booking Amt/Advance Cash","Booking Amt/Advance Bank","2nd Payment Cash Bank","2nd Payment Bank","Final Payment Mode Cash","Final Payment Mode Bank","Total Cash","Total Bank","Total","Per Day Cost"]);
 const PAYMENT_COLS = ["Booking Amt/Advance Cash","Booking Amt/Advance Bank","2nd Payment Cash Bank","2nd Payment Bank","Final Payment Mode Cash","Final Payment Mode Bank"];
 const AUTO_CALC_COLS = new Set(["Total Cash","Total Bank","Total","Per Day Cost","Number of Days"]);
@@ -343,6 +343,42 @@ export default function TripsPage() {
         {/* Trip Form */}
         <section className="section">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+
+            {/* ── Driver (always shown, not dependent on sheet columns) ── */}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Driver</label>
+              <select
+                className="input-field"
+                value={form["Driver Name"] || ""}
+                onChange={e => {
+                  const selected = drivers.find((d: any) => d.name === e.target.value);
+                  setForm((p: any) => ({
+                    ...p,
+                    "Driver Name": e.target.value,
+                    "Driver Contact": selected ? (selected.mobile_num || selected.mobile_num2 || "") : "",
+                  }));
+                }}
+              >
+                <option value="">Select driver</option>
+                {drivers.map((d: any, i: number) => (
+                  <option key={i} value={d.name}>{d.name}{d.mobile_num ? ` — ${d.mobile_num}` : ""}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* ── Driver Contact (auto-filled, read-only) ── */}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--accent-primary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Driver Contact ✦</label>
+              <input
+                type="text"
+                className="input-field"
+                value={form["Driver Contact"] || ""}
+                readOnly
+                placeholder="Auto-filled from driver"
+                style={{ background: "rgba(37,99,235,0.05)", cursor: "not-allowed", color: "var(--accent-primary)", fontWeight: 600 }}
+              />
+            </div>
+
             {visibleColumns.map((col) => {
               if (col === "Vehicle Details") {
                 return (
