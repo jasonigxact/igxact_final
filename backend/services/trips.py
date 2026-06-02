@@ -45,7 +45,7 @@ def _pipeline_records(df: pd.DataFrame) -> list[dict]:
     keep = [
         "trip id", "Customer Name", "Cust. Contact Number",
         "Trip From", "Trip TO", "Start Date", "End date",
-        "Vehicle Details", REVENUE_COL, "Received", "Pending",
+        "Vehicle Details", REVENUE_COL, "Received", "Pending", "Deal Price",
     ]
     existing = [c for c in keep if c in df.columns]
     return df[existing].fillna("").to_dict(orient="records")
@@ -179,6 +179,31 @@ def get_monthly_target_for_month(year: int, month: int) -> float:
             continue  # vehicle added after this month — skip
         total += v["target"]
     return total
+
+
+def delete_vehicle(name: str) -> dict:
+    """Remove a vehicle row from the Vehichles sheet by name."""
+    ws = open_worksheet_by_name("Vehichles")
+    try:
+        all_values = ws.get_all_values()
+    except Exception as e:
+        logger.error(f"Vehicles read error: {e}")
+        raise HTTPException(status_code=500, detail="Could not read vehicles")
+
+    if not all_values:
+        raise HTTPException(status_code=404, detail=f"Vehicle '{name}' not found")
+
+    header = [h.strip().lower() for h in all_values[0]]
+    name_col = header.index("vehicle name") if "vehicle name" in header else 0
+
+    for row_idx, row in enumerate(all_values[1:], start=2):  # 1-based, skip header
+        cell_name = str(row[name_col]).strip() if len(row) > name_col else ""
+        if cell_name.lower() == name.lower():
+            ws.delete_rows(row_idx)
+            logger.info(f"delete_vehicle: removed '{name}' at row {row_idx}")
+            return {"msg": "Vehicle deleted", "vehicle": name}
+
+    raise HTTPException(status_code=404, detail=f"Vehicle '{name}' not found")
 
 
 def add_vehicle(name: str) -> dict:

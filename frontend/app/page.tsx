@@ -212,10 +212,15 @@ export default function Home() {
   };
 
   const sortTrips = (trips: any[]) => {
-    if (tripSort === "deal") return [...trips].sort((a, b) => (b["Deal Price"] || 0) - (a["Deal Price"] || 0));
-    if (tripSort === "id")   return [...trips].sort((a, b) => (b["trip id"] || 0) - (a["trip id"] || 0));
-    // default: date (newest first by trip id as proxy)
-    return [...trips].sort((a, b) => (b["trip id"] || 0) - (a["trip id"] || 0));
+    if (tripSort === "deal") return [...trips].sort((a, b) => (Number(b["Deal Price"]) || 0) - (Number(a["Deal Price"]) || 0));
+    if (tripSort === "id")   return [...trips].sort((a, b) => (Number(b["trip id"]) || 0) - (Number(a["trip id"]) || 0));
+    // date: sort by Start Date descending, fallback to trip id
+    return [...trips].sort((a, b) => {
+      const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
+      const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
+      if (db !== da) return db - da;
+      return (Number(b["trip id"]) || 0) - (Number(a["trip id"]) || 0);
+    });
   };
 
   const progressTrips = data?.pipeline?.progress || [];
@@ -842,7 +847,7 @@ export default function Home() {
                 <p style={{ color:"var(--text-muted)", fontSize:13, textAlign:"center", padding:24 }}>No vehicles found</p>
               ) : allTargets.map((v: any) => (
                 <div key={v.name} style={{
-                  display:"grid", gridTemplateColumns:"1fr auto auto",
+                  display:"grid", gridTemplateColumns:"1fr auto auto auto",
                   alignItems:"center", gap:12,
                   background:"rgba(0,0,0,0.025)", borderRadius:10, padding:"12px 16px",
                   border:"1px solid rgba(0,0,0,0.06)",
@@ -872,6 +877,18 @@ export default function Home() {
                   }}>
                     {v.target > 0 ? `₹${Number(v.target).toLocaleString("en-IN")}` : "Not set"}
                   </span>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`Remove vehicle "${v.name}"? This cannot be undone.`)) return;
+                      try {
+                        const res = await apiFetch(`/vehicles/${encodeURIComponent(v.name)}`, { method: "DELETE" });
+                        if (!res.ok) { const d = await res.json(); toast.error(d.detail || "Failed to delete"); return; }
+                        toast.success(`"${v.name}" removed`);
+                        fetchTargets();
+                      } catch (e: any) { toast.error(e.message); }
+                    }}
+                    style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:8, padding:"6px 10px", cursor:"pointer", color:"#ef4444", fontSize:13, fontWeight:700 }}
+                  >🗑</button>
                 </div>
               ))}
             </div>
