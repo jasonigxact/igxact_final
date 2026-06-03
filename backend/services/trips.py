@@ -481,6 +481,11 @@ def get_dashboard_data(
     df_booked    = df[df["Status"].str.contains("booked", na=False)].copy()
     df_done      = df[df["Status"].str.contains("done", na=False)].copy()
 
+    # Sort each pipeline newest first
+    for _df in [df_progress, df_booked, df_done]:
+        if "Start Date" in _df.columns:
+            _df.sort_values("Start Date", ascending=False, inplace=True, na_position="last")
+
     progress_data = _pipeline_records(df_progress)
     booked_data   = _pipeline_records(df_booked)
     done_data     = _pipeline_records(df_done)
