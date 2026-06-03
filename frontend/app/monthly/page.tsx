@@ -351,7 +351,16 @@ useEffect(() => {
                         return (
                           <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)" }}>
                             <td style={{ padding: "9px 12px", fontWeight: 600 }}>🚗 {v.vehicle}</td>
-                            {EXPENSE_KEYS.map(k => <td key={k} style={{ padding: "9px 10px", textAlign: "right", color: "var(--text-secondary)" }}>₹{(Number(v[k]) || 0).toLocaleString("en-IN")}</td>)}
+                            {EXPENSE_KEYS.map(k => {
+                              const amt = Number(v[k]) || 0;
+                              const expPct = rowTotal > 0 ? ((amt / rowTotal) * 100).toFixed(1) : "0.0";
+                              return (
+                                <td key={k} style={{ padding: "9px 10px", textAlign: "right", color: "var(--text-secondary)" }}>
+                                  ₹{amt.toLocaleString("en-IN")}
+                                  {amt > 0 && <span style={{ display: "block", fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{expPct}%</span>}
+                                </td>
+                              );
+                            })}
                             <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700 }}>₹{rowTotal.toLocaleString("en-IN")}</td>
                             <td style={{ padding: "9px 12px", textAlign: "right" }}>
                               <span style={{ background: "rgba(37,99,235,0.10)", color: "var(--accent-primary)", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 6 }}>{pct}%</span>
