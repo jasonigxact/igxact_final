@@ -48,7 +48,15 @@ def _pipeline_records(df: pd.DataFrame) -> list[dict]:
         "Vehicle Details", REVENUE_COL, "Received", "Pending", "Deal Price",
     ]
     existing = [c for c in keep if c in df.columns]
-    return df[existing].fillna("").to_dict(orient="records")
+    result = df[existing].copy()
+
+    # Convert Start Date to ISO string so frontend can sort reliably
+    if "Start Date" in result.columns:
+        result["Start Date"] = result["Start Date"].apply(
+            lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) and hasattr(x, "strftime") else ""
+        )
+
+    return result.fillna("").to_dict(orient="records")
 
 
 def _safe_summary(d: pd.DataFrame) -> dict:
@@ -274,10 +282,14 @@ def add_trip(data: dict) -> dict:
     last_id = max(trip_ids) if trip_ids else (START_ID - 1)
     trip_id = last_id + 1
 
+    driver_name = data.get("Driver Name", "") or data.get("drivername", "")
+
     row = []
     for col in headers:
         if col.strip().lower() == "trip id":
             row.append(trip_id)
+        elif col.strip().lower() == "drivername":
+            row.append(driver_name)
         else:
             row.append(data.get(col, ""))
 

@@ -214,7 +214,7 @@ export default function Home() {
   const sortTrips = (trips: any[]) => {
     if (tripSort === "deal") return [...trips].sort((a, b) => (Number(b["Deal Price"]) || 0) - (Number(a["Deal Price"]) || 0));
     if (tripSort === "id")   return [...trips].sort((a, b) => (Number(b["trip id"]) || 0) - (Number(a["trip id"]) || 0));
-    // date: sort by Start Date descending, fallback to trip id
+    // date: Start Date is ISO string "YYYY-MM-DD" from backend
     return [...trips].sort((a, b) => {
       const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
       const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
@@ -350,8 +350,8 @@ export default function Home() {
         <section className="section fade-up" style={{ animationDelay: "0.05s" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
             <KpiCard label="All-Time Total Deal" value={`₹${(data?.overall?.total_deal || 0).toLocaleString("en-IN")}`} accent="#7c3aed" icon="🌐" />
+            <KpiCard label=\"Total Revenue (excl. cancelled)\"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
             <KpiCard label={`${data?.active_year || new Date().getFullYear()} Total Completed Trips Deal`} value={`₹${(data?.overall?.current_year_deal || 0).toLocaleString("en-IN")}`} accent="#0ea5e9" icon="📆" />
-            <KpiCard label="Total Revenue (excl. cancelled)"  value={`₹${(kpi.total_revenue || 0).toLocaleString("en-IN")}`} accent="var(--accent-primary)" icon="💰" />
             <KpiCard label="Total Profit"   value={`₹${(kpi.total_profit  || 0).toLocaleString("en-IN")}`} accent="var(--accent-green)"   icon="📈" />
             <KpiCard label="Total Expenses" value={`₹${(kpi.total_expense || 0).toLocaleString("en-IN")}`} accent="#f43f5e" icon="💸" />
             <KpiCard label="Other Expenses" value={`₹${otherExpenses.toLocaleString("en-IN")}`}            accent="#f43f5e"               icon="📉" />
