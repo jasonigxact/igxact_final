@@ -216,10 +216,10 @@ export default function Home() {
     if (tripSort === "id")   return [...trips].sort((a, b) => (Number(b["trip id"]) || 0) - (Number(a["trip id"]) || 0));
     // date: Start Date is ISO string "YYYY-MM-DD" from backend
     return [...trips].sort((a, b) => {
-      const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
-      const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
-      if (db !== da) return db - da;
-      return (Number(b["trip id"]) || 0) - (Number(a["trip id"]) || 0);
+      const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : Infinity;
+      const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : Infinity;
+      if (da !== db) return da - db;
+      return (Number(a["trip id"]) || 0) - (Number(b["trip id"]) || 0);
     });
   };
 
