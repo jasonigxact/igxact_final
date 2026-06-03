@@ -74,9 +74,10 @@ useEffect(() => {
   (t:any) => t.Status?.toLowerCase().includes("completed")
 );
   const formattedData = finalData.map((item: any) => {
-    const netProfit = (item["Net Profit (without Driver Salary)"] !== "" && item["Net Profit (without Driver Salary)"] !== undefined && item["Net Profit (without Driver Salary)"] !== null)
-      ? Number(item["Net Profit (without Driver Salary)"])
-      : (Number(item["CalcProfit"]) || 0);
+    const raw = item["Net Profit (without Driver Salary)"];
+    const rawNum = Number(raw);
+    const hasNetProfit = raw !== "" && raw !== undefined && raw !== null && !isNaN(rawNum) && rawNum !== 0;
+    const netProfit = hasNetProfit ? rawNum : (Number(item["CalcProfit"]) || 0);
     return {
       ...item,
       "Net Profit (without Driver Salary)": netProfit,
