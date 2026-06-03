@@ -7,7 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList
 } from "recharts";
 
 const axisProps = { stroke: "#475569", fontSize: 12, fontFamily: "var(--font-body)" };
@@ -297,10 +297,36 @@ useEffect(() => {
                 <BarChart data={vehicleExpenses} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
                   <XAxis dataKey="vehicle" angle={-30} textAnchor="end" height={70} tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
                   <YAxis tick={{ fontSize: 11, fill: "#475569", fontFamily: "var(--font-body)" }} />
-                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.97)", border: "1px solid rgba(0,0,0,0.10)", borderRadius: 14, fontFamily: "var(--font-body)", fontSize: 12 }} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                  <Tooltip
+                    contentStyle={{ background: "rgba(255,255,255,0.97)", border: "1px solid rgba(0,0,0,0.10)", borderRadius: 14, fontFamily: "var(--font-body)", fontSize: 12 }}
+                    formatter={(v: any, name: any, props: any) => {
+                      const rowTotal = EXPENSE_KEYS.reduce((s, k) => s + (Number(props.payload[k]) || 0), 0);
+                      const pct = rowTotal > 0 ? ((Number(v) / rowTotal) * 100).toFixed(1) : "0.0";
+                      return [`₹${Number(v).toLocaleString("en-IN")} (${pct}%)`, name];
+                    }}
+                  />
                   <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 11, paddingTop: 8 }} />
                   {EXPENSE_KEYS.map((key, i) => (
-                    <Bar key={key} dataKey={key} stackId="a" fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} radius={i === EXPENSE_KEYS.length - 1 ? [4,4,0,0] : [0,0,0,0]} />
+                    <Bar key={key} dataKey={key} stackId="a" fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} radius={i === EXPENSE_KEYS.length - 1 ? [4,4,0,0] : [0,0,0,0]}>
+                      {i === EXPENSE_KEYS.length - 1 && (
+                        <LabelList
+                          dataKey={key}
+                          position="top"
+                          content={(props: any) => {
+                            const { x, y, width, value, index } = props;
+                            const row = vehicleExpenses[index];
+                            const rowTotal = EXPENSE_KEYS.reduce((s, k) => s + (Number(row?.[k]) || 0), 0);
+                            const pct = rowTotal > 0 ? ((rowTotal / vehicleExpenses.reduce((s: number, v: any) => s + EXPENSE_KEYS.reduce((ss, k) => ss + (Number(v[k]) || 0), 0), 0)) * 100).toFixed(1) : "0";
+                            if (!rowTotal) return null;
+                            return (
+                              <text x={Number(x) + Number(width) / 2} y={Number(y) - 4} textAnchor="middle" fill="#475569" fontSize={10} fontWeight={700} fontFamily="var(--font-body)">
+                                {pct}%
+                              </text>
+                            );
+                          }}
+                        />
+                      )}
+                    </Bar>
                   ))}
                 </BarChart>
               </ResponsiveContainer>
