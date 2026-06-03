@@ -70,9 +70,13 @@ useEffect(() => {
 }, [fromDate, toDate]);
 
   // const finalData = data?.trips || [];
-  const finalData = (data?.trips || []).filter(
-  (t:any) => t.Status?.toLowerCase().includes("completed")
-);
+  const finalData = (data?.trips || [])
+    .filter((t: any) => t.Status?.toLowerCase().includes("completed"))
+    .sort((a: any, b: any) => {
+      const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
+      const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
+      return da - db;
+    });
   const formattedData = finalData.map((item: any) => {
     const raw = item["Net Profit (without Driver Salary)"];
     const rawNum = Number(raw);
