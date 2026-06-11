@@ -409,6 +409,7 @@ def query_trips(
 
     # Vehicle-wise expense breakdown for monthly chart
     veh_expense_chart = []
+    veh_profit_summary = []
     if "Vehicle Details" in df.columns:
         veh_groups = df.groupby("Vehicle Details")
         for veh, vdf in veh_groups:
@@ -420,6 +421,24 @@ def query_trips(
             entry["total"] = sum(entry[col] for col in EXPENSE_COLS)
             veh_expense_chart.append(entry)
 
+            # Profit summary per vehicle (all statuses)
+            revenue   = safe_float(vdf[REVENUE_COL].sum()) if REVENUE_COL in vdf.columns else 0.0
+            commission = safe_float(vdf["Sales Commission"].sum()) if "Sales Commission" in vdf.columns else 0.0
+            total_exp  = entry["total"]
+            profit_with    = round(revenue - total_exp, 2)
+            profit_without = round(revenue - total_exp + commission, 2)
+            profit_pct     = round((profit_with / revenue * 100), 1) if revenue > 0 else 0.0
+            veh_profit_summary.append({
+                "vehicle":         str(veh).strip(),
+                "total_deals":     int(len(vdf)),
+                "revenue":         revenue,
+                "total_expenses":  total_exp,
+                "commission":      commission,
+                "profit_with_commission":    profit_with,
+                "profit_without_commission": profit_without,
+                "profit_pct":      profit_pct,
+            })
+
     return {
         "completed": _safe_summary(df_completed),
         "progress":  _safe_summary(df_progress),
@@ -427,6 +446,7 @@ def query_trips(
         "done":      _safe_summary(df_done),
         "trips": df.fillna("").to_dict(orient="records"),
         "vehicle_expense_breakdown": veh_expense_chart,
+        "vehicle_profit_summary": veh_profit_summary,
     }
 
 

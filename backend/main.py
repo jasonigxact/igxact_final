@@ -140,6 +140,64 @@ def update_vehicle_target(vehicle_name: str, body: dict, user=Depends(require_ad
     return set_vehicle_target(vehicle_name, target)
 
 
+@app.get("/calendar/vehicles")
+def get_calendar_vehicles(user=Depends(verify_token)):
+    """Return list of all vehicles for calendar sidebar."""
+    return get_vehicles()
+
+
+@app.get("/calendar/vehicle/{vehicle_name}")
+def get_vehicle_calendar(vehicle_name: str, year: int = None, month: int = None, user=Depends(verify_token)):
+    """Return trips for a specific vehicle for a given month."""
+    from services.sheets import load_trips_df
+    import pandas as pd
+    from datetime import date
+    import calendar as cal_mod
+
+    now = date.today()
+    y = year  or now.year
+    m = month or now.month
+
+    df = load_trips_df()
+    if df.empty:
+        return {"trips": [], "year": y, "month": m, "vehicle": vehicle_name}
+
+    # Filter by vehicle
+    if "Vehicle Details" in df.columns:
+        df = df[df["Vehicle Details"].astype(str).str.strip().str.lower() == vehicle_name.strip().lower()]
+
+    # Filter to trips overlapping this month
+    if "Start Date" in df.columns:
+        month_start = pd.Timestamp(year=y, month=m, day=1)
+        month_end   = pd.Timestamp(year=y, month=m, day=cal_mod.monthrange(y, m)[1])
+        if "End date parsed" not in df.columns:
+            df["End date parsed"] = pd.to_datetime(df.get("End date", ""), errors="coerce")
+        start_ok = df["Start Date"] <= month_end
+        end_ok   = df["End date parsed"].fillna(df["Start Date"]) >= month_start
+        df = df[start_ok & end_ok]
+
+    # Remove cancelled
+    if "Status" in df.columns:
+        df = df[~df["Status"].str.lower().str.strip().isin(["cancelled", "canceled"])]
+
+    trips = []
+    for _, row in df.iterrows():
+        start = row.get("Start Date")
+        end   = row.get("End date parsed", start)
+        trips.append({
+            "trip_id":    str(row.get("trip id", "")),
+            "customer":   str(row.get("Customer Name", "")),
+            "from":       str(row.get("Trip From", "")),
+            "to":         str(row.get("Trip TO", "")),
+            "status":     str(row.get("Status", "")),
+            "start_date": start.strftime("%Y-%m-%d") if pd.notna(start) and hasattr(start, "strftime") else "",
+            "end_date":   end.strftime("%Y-%m-%d")   if pd.notna(end)   and hasattr(end,   "strftime") else "",
+            "deal":       float(row.get("Deal Price", 0) or 0),
+        })
+
+    return {"trips": trips, "year": y, "month": m, "vehicle": vehicle_name}
+
+
 # ─── Trips ────────────────────────────────────────────────────────────────────
 @app.post("/add-trip", status_code=201)
 def create_trip(body: TripCreate, user=Depends(require_admin)):

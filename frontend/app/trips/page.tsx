@@ -55,7 +55,11 @@ export default function TripsPage() {
   const [tripId, setTripId]       = useState("");
   const [mobile, setMobile]       = useState("");
   const [role, setRole]           = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<string | null>(null);
+  const [formErrors, setFormErrors]   = useState<string | null>(null);
+  const [filterStatus, setFilterStatus]   = useState("");
+  const [filterVehicle, setFilterVehicle] = useState("");
+  const [filterMonth, setFilterMonth]     = useState("");
+  const [sortDir, setSortDir]             = useState<"asc"|"desc">("asc");
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -541,7 +545,7 @@ export default function TripsPage() {
 
         {/* Search */}
         <section className="section">
-          <div className="section-header"><h2 className="section-title">Search Trips</h2></div>
+          <div className="section-header"><h2 className="section-title">Search & Filter Trips</h2></div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>FROM</label>
@@ -563,81 +567,163 @@ export default function TripsPage() {
               {loading ? "Searching…" : "Search"}
             </button>
             {hasFiltered && (
-              <button className="btn-ghost" onClick={() => { setStartDate(null); setEndDate(null); setTripId(""); setMobile(""); setTrips([]); setHasFiltered(false); }}>
-                Clear
+              <button className="btn-ghost" onClick={() => { setStartDate(null); setEndDate(null); setTripId(""); setMobile(""); setTrips([]); setHasFiltered(false); setFilterStatus(""); setFilterVehicle(""); setFilterMonth(""); setSortDir("asc"); }}>
+                Clear All
               </button>
             )}
           </div>
         </section>
 
         {/* Results */}
-        {hasFiltered && (
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Results</h2>
-              <p className="section-subtitle">{trips.length} trip{trips.length !== 1 ? "s" : ""} found</p>
-            </div>
-            {loading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid rgba(79,142,247,0.15)", borderTopColor: "var(--accent-primary)", animation: "spin 0.8s linear infinite" }} />
+        {hasFiltered && (() => {
+          // Apply client-side filters
+          let filtered = [...trips];
+          if (filterStatus)  filtered = filtered.filter(t => (t["Status"]||"").toLowerCase().includes(filterStatus.toLowerCase()));
+          if (filterVehicle) filtered = filtered.filter(t => (t["Vehicle Details"]||"").toLowerCase().includes(filterVehicle.toLowerCase()));
+          if (filterMonth)   filtered = filtered.filter(t => {
+            if (!t["Start Date"]) return false;
+            const d = new Date(t["Start Date"]);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === filterMonth;
+          });
+          // Sort by date
+          filtered.sort((a, b) => {
+            const da = a["Start Date"] ? new Date(a["Start Date"]).getTime() : 0;
+            const db = b["Start Date"] ? new Date(b["Start Date"]).getTime() : 0;
+            return sortDir === "asc" ? da - db : db - da;
+          });
+
+          // Summary stats
+          const totalTrips     = filtered.length;
+          const completedCount = filtered.filter(t => (t["Status"]||"").toLowerCase().includes("completed")).length;
+          const pendingCount   = filtered.filter(t => { const s = (t["Status"]||"").toLowerCase(); return s.includes("booked")||s.includes("progress")||s.includes("done"); }).length;
+          const totalRev       = filtered.reduce((s, t) => s + Number(t["Deal Price"]||0), 0);
+
+          // Unique months and vehicles for filter dropdowns
+          const months = [...new Set(trips.map((t: any) => {
+            if (!t["Start Date"]) return null;
+            const d = new Date(t["Start Date"]);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+          }).filter(Boolean))].sort() as string[];
+          const vehicleList = [...new Set(trips.map((t: any) => t["Vehicle Details"]).filter(Boolean))].sort() as string[];
+
+          return (
+            <section className="section">
+              {/* Summary cards */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:20 }}>
+                {[
+                  { label:"Total Trips",      value:totalTrips,     color:"var(--accent-primary)", isCount:true },
+                  { label:"Completed",        value:completedCount, color:"var(--accent-green)",   isCount:true },
+                  { label:"Pending",          value:pendingCount,   color:"#f97316",               isCount:true },
+                  { label:"Total Revenue",    value:totalRev,       color:"var(--accent-primary)", isCount:false },
+                ].map(({ label, value, color, isCount }) => (
+                  <div key={label} style={{ background:"var(--bg-card)", border:`1px solid ${color}20`, borderRadius:12, padding:"14px 16px" }}>
+                    <p style={{ fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>{label}</p>
+                    <p style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:800, color }}>{isCount ? value : `₹${Number(value).toLocaleString("en-IN")}`}</p>
+                  </div>
+                ))}
               </div>
-            ) : trips.length === 0 ? (
-              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: 14, padding: "32px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-                No trips found
-              </div>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>
-                      {["#", "Customer", "Route", "Date", "Vehicle", "Deal", "Net Profit", "Status", ""].map((h) => (
-                        <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trips.map((trip: any, i: number) => {
-                      const tDeal   = Number(trip["Deal Price"] || 0);
-                      const tFuel   = Number(trip["Fuel"] || 0);
-                      const tTolls  = Number(trip["Tolls & Taxes"] || 0);
-                      const tPark   = Number(trip["Parking"] || 0);
-                      const tDriver = Number(trip["Driver Allowance"] || 0);
-                      const tComm   = Number(trip["Sales Commission"] || 0);
-                      const tOther  = Number(trip["Other Expenses"] || 0);
-                      const tProfit = tDeal - (tFuel + tTolls + tPark + tDriver + tComm + tOther);
-                      const status  = (trip["Status"] || "").toLowerCase();
-                      const statusColor = status.includes("completed") ? "var(--accent-green)" : status.includes("progress") ? "var(--accent-orange)" : status.includes("done") ? "#8b5cf6" : "var(--accent-primary)";
-                      return (
-                        <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)" }}>
-                          <td style={{ padding: "10px 12px", fontWeight: 600 }}>{trip["trip id"]}</td>
-                          <td style={{ padding: "10px 12px" }}>
-                            <div>{trip["Customer Name"]}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{trip["Cust. Contact Number"]}</div>
-                          </td>
-                          <td style={{ padding: "10px 12px" }}>{trip["Trip From"]} → {trip["Trip TO"]}</td>
-                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--text-muted)" }}>{trip["Start Date"] ? new Date(trip["Start Date"]).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""}</td>
-                          <td style={{ padding: "10px 12px" }}>{trip["Vehicle Details"]}</td>
-                          <td style={{ padding: "10px 12px", fontWeight: 600 }}>₹{tDeal.toLocaleString("en-IN")}</td>
-                          <td style={{ padding: "10px 12px", fontWeight: 600, color: tProfit >= 0 ? "var(--accent-green)" : "var(--accent-red)" }}>₹{tProfit.toLocaleString("en-IN")}</td>
-                          <td style={{ padding: "10px 12px" }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, background: `${statusColor}18`, padding: "3px 8px", borderRadius: 6 }}>
-                              {trip["Status"]}
-                            </span>
-                          </td>
-                          <td style={{ padding: "10px 12px" }}>
-                            <button onClick={() => handleEdit(trip)} style={{ fontSize: 12, color: "var(--accent-primary)", fontWeight: 600, cursor: "pointer", background: "none", border: "none" }}>
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      );
+
+              {/* Filter row */}
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-end", marginBottom:16 }}>
+                <div>
+                  <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-muted)", marginBottom:4 }}>STATUS</label>
+                  <select className="input-field" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ minWidth:130 }}>
+                    <option value="">All Statuses</option>
+                    {["booked","progress","done","completed","cancelled"].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-muted)", marginBottom:4 }}>VEHICLE</label>
+                  <select className="input-field" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)} style={{ minWidth:130 }}>
+                    <option value="">All Vehicles</option>
+                    {vehicleList.map((v: string) => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-muted)", marginBottom:4 }}>MONTH</label>
+                  <select className="input-field" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ minWidth:130 }}>
+                    <option value="">All Months</option>
+                    {months.map((m: string) => {
+                      const [yr, mo] = m.split("-");
+                      const label = new Date(Number(yr), Number(mo)-1, 1).toLocaleDateString("en-IN", { month:"short", year:"numeric" });
+                      return <option key={m} value={m}>{label}</option>;
                     })}
-                  </tbody>
-                </table>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-muted)", marginBottom:4 }}>SORT DATE</label>
+                  <select className="input-field" value={sortDir} onChange={e => setSortDir(e.target.value as "asc"|"desc")} style={{ minWidth:120 }}>
+                    <option value="asc">Oldest First</option>
+                    <option value="desc">Newest First</option>
+                  </select>
+                </div>
+                <div style={{ marginLeft:"auto" }}>
+                  <p style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>{filtered.length} trip{filtered.length!==1?"s":""} shown</p>
+                </div>
               </div>
-            )}
-          </section>
-        )}
+
+              {loading ? (
+                <div style={{ display:"flex", justifyContent:"center", padding:40 }}>
+                  <div style={{ width:32, height:32, borderRadius:"50%", border:"3px solid rgba(79,142,247,0.15)", borderTopColor:"var(--accent-primary)", animation:"spin 0.8s linear infinite" }} />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ background:"var(--bg-card)", border:"1px solid var(--border-subtle)", borderRadius:14, padding:"32px", textAlign:"center", color:"var(--text-muted)", fontSize:14 }}>
+                  No trips match the selected filters
+                </div>
+              ) : (
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                    <thead>
+                      <tr style={{ borderBottom:"2px solid var(--border-subtle)" }}>
+                        {["#","Customer","Route","Date","Vehicle","Deal","Net Profit","Status",""].map(h => (
+                          <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", whiteSpace:"nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((trip: any, i: number) => {
+                        const tDeal   = Number(trip["Deal Price"]||0);
+                        const tFuel   = Number(trip["Fuel"]||0);
+                        const tTolls  = Number(trip["Tolls & Taxes"]||0);
+                        const tPark   = Number(trip["Parking"]||0);
+                        const tDriver = Number(trip["Driver Allowance"]||0);
+                        const tComm   = Number(trip["Sales Commission"]||0);
+                        const tOther  = Number(trip["Other Expenses"]||0);
+                        const tProfit = tDeal - (tFuel+tTolls+tPark+tDriver+tComm+tOther);
+                        const status  = (trip["Status"]||"").toLowerCase();
+                        const statusColor = status.includes("completed") ? "var(--accent-green)" : status.includes("progress") ? "var(--accent-orange)" : status.includes("done") ? "#8b5cf6" : "var(--accent-primary)";
+                        return (
+                          <tr key={i} style={{ borderBottom:"1px solid var(--border-subtle)", background: i%2===0 ? "transparent" : "rgba(0,0,0,0.015)" }}>
+                            <td style={{ padding:"10px 12px", fontWeight:600 }}>{trip["trip id"]}</td>
+                            <td style={{ padding:"10px 12px" }}>
+                              <div>{trip["Customer Name"]}</div>
+                              <div style={{ fontSize:11, color:"var(--text-muted)" }}>{trip["Cust. Contact Number"]}</div>
+                            </td>
+                            <td style={{ padding:"10px 12px" }}>{trip["Trip From"]} → {trip["Trip TO"]}</td>
+                            <td style={{ padding:"10px 12px", whiteSpace:"nowrap", color:"var(--text-muted)" }}>
+                              {trip["Start Date"] ? new Date(trip["Start Date"]).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : ""}
+                            </td>
+                            <td style={{ padding:"10px 12px" }}>{trip["Vehicle Details"]}</td>
+                            <td style={{ padding:"10px 12px", fontWeight:600 }}>₹{tDeal.toLocaleString("en-IN")}</td>
+                            <td style={{ padding:"10px 12px", fontWeight:600, color: tProfit>=0 ? "var(--accent-green)" : "var(--accent-red)" }}>₹{tProfit.toLocaleString("en-IN")}</td>
+                            <td style={{ padding:"10px 12px" }}>
+                              <span style={{ fontSize:11, fontWeight:600, color:statusColor, background:`${statusColor}18`, padding:"3px 8px", borderRadius:6 }}>
+                                {trip["Status"]}
+                              </span>
+                            </td>
+                            <td style={{ padding:"10px 12px" }}>
+                              <button onClick={() => handleEdit(trip)} style={{ fontSize:12, color:"var(--accent-primary)", fontWeight:600, cursor:"pointer", background:"none", border:"none" }}>Edit</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          );
+        })()}
       </div>
     </div>
   );
