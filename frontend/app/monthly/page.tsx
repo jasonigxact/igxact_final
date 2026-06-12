@@ -253,8 +253,12 @@ export default function MonthlyPage() {
                   <YAxis {...axisProps} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
                   <Legend wrapperStyle={{ fontFamily:"var(--font-body)", fontSize:12, paddingTop:8 }} />
-                  <Bar dataKey="Deal Price" fill="#2563eb" radius={[4,4,0,0]} />
-                  <Bar dataKey="Net Profit (without Driver Salary)" name="Net Profit" fill="#22d3a0" radius={[4,4,0,0]} />
+                  <Bar dataKey="Deal Price" fill="#2563eb" radius={[4,4,0,0]}>
+                    <LabelList dataKey="Deal Price" position="top" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 9, fill: "#2563eb", fontWeight: 700 }} />
+                  </Bar>
+                  <Bar dataKey="Net Profit (without Driver Salary)" name="Net Profit" fill="#22d3a0" radius={[4,4,0,0]}>
+                    <LabelList dataKey="Net Profit (without Driver Salary)" position="top" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 9, fill: "#16a34a", fontWeight: 700 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -268,7 +272,7 @@ export default function MonthlyPage() {
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, alignItems:"center" }}>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={expensePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }: any) => `${name} ${(percent*100).toFixed(1)}%`} labelLine={true}>
+                  <Pie data={expensePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent, value }: any) => `${name}: ${(percent*100).toFixed(1)}%`} labelLine={true}>
                     {expensePieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />

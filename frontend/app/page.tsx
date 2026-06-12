@@ -502,8 +502,12 @@ export default function Home() {
                 <YAxis {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
                 <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 12 }} />
-                <Bar dataKey="Revenue"   fill="url(#gradRev)"    radius={[7,7,0,0]} />
-                <Bar dataKey="NetProfit" fill="url(#gradProfit)" radius={[7,7,0,0]} />
+                <Bar dataKey="Revenue"   fill="url(#gradRev)"    radius={[7,7,0,0]}>
+                  <LabelList dataKey="Revenue"   position="top" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 10, fill: "#475569", fontWeight: 700 }} />
+                </Bar>
+                <Bar dataKey="NetProfit" fill="url(#gradProfit)" radius={[7,7,0,0]}>
+                  <LabelList dataKey="NetProfit" position="top" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 10, fill: "#22d3a0", fontWeight: 700 }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -525,7 +529,9 @@ export default function Home() {
                   <XAxis dataKey="Vehicle Details" {...axisProps} />
                   <YAxis {...axisProps} />
                   <Tooltip content={<GlassTooltip />} />
-                  <Bar dataKey="TotalRevenue" fill="url(#gradVeh)" radius={[7,7,0,0]} />
+                  <Bar dataKey="TotalRevenue" fill="url(#gradVeh)" radius={[7,7,0,0]}>
+                    <LabelList dataKey="TotalRevenue" position="top" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 10, fill: "#475569", fontWeight: 700 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -542,7 +548,9 @@ export default function Home() {
                   <XAxis dataKey="Vehicle Details" {...axisProps} />
                   <YAxis {...axisProps} />
                   <Tooltip content={<GlassTooltip />} />
-                  <Bar dataKey="AvgMargin" fill="url(#gradMargin)" radius={[7,7,0,0]} />
+                  <Bar dataKey="AvgMargin" fill="url(#gradMargin)" radius={[7,7,0,0]}>
+                    <LabelList dataKey="AvgMargin" position="top" formatter={(v: any) => v > 0 ? `${Number(v).toFixed(1)}%` : ""} style={{ fontSize: 10, fill: "#7c3aed", fontWeight: 700 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -564,7 +572,9 @@ export default function Home() {
                 <XAxis type="number" {...axisProps} />
                 <YAxis dataKey="Customer" type="category" width={160} {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
-                <Bar dataKey="Revenue" fill="url(#gradCust)" radius={[0,7,7,0]} />
+                <Bar dataKey="Revenue" fill="url(#gradCust)" radius={[0,7,7,0]}>
+                  <LabelList dataKey="Revenue" position="right" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 10, fill: "#475569", fontWeight: 700 }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -586,6 +596,7 @@ export default function Home() {
                 <YAxis dataKey="Route" type="category" width={200} {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
                 <Bar dataKey="TotalRevenue" fill="url(#gradRoute)" radius={[0,7,7,0]}>
+                  <LabelList dataKey="TotalRevenue" position="insideRight" formatter={(v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}k` : ""} style={{ fontSize: 10, fill: "#fff", fontWeight: 700 }} />
                   <LabelList dataKey="TripCount" position="right" formatter={formatTrips} style={{ fontSize: 11, fill: "var(--text-muted)" }} />
                 </Bar>
               </BarChart>
@@ -600,7 +611,7 @@ export default function Home() {
               <span className="chart-label">Cost Mix</span>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={data.cost_breakdown} dataKey="value" nameKey="name" outerRadius={95} innerRadius={48} paddingAngle={3} label={(e: any) => `${e.percent}%`}>
+                  <Pie data={data.cost_breakdown} dataKey="value" nameKey="name" outerRadius={95} innerRadius={48} paddingAngle={3} label={(e: any) => `${(e.percent*100).toFixed(1)}%`}>
                     {data.cost_breakdown.map((_: any, i: number) => <Cell key={i} fill={COST_COLORS[i % COST_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={<GlassTooltip />} />
@@ -680,7 +691,16 @@ export default function Home() {
                   <Bar dataKey="Parking"          stackId="a" fill="#a78bfa" fillOpacity={0.85} />
                   <Bar dataKey="Driver Allowance" stackId="a" fill="#f97316" fillOpacity={0.85} />
                   <Bar dataKey="Sales Commission" stackId="a" fill="#f87171" fillOpacity={0.85} />
-                  <Bar dataKey="Other Expenses"   stackId="a" fill="#e11d48" fillOpacity={0.85} radius={[4,4,0,0]} />
+                  <Bar dataKey="Other Expenses"   stackId="a" fill="#e11d48" fillOpacity={0.85} radius={[4,4,0,0]}>
+                    <LabelList position="top" content={(props: any) => {
+                      const { x, y, width, index } = props;
+                      const row = (data.monthly_cost || [])[index];
+                      if (!row) return null;
+                      const total = ["Fuel","Tolls & Taxes","Parking","Driver Allowance","Sales Commission","Other Expenses"].reduce((s: number, k: string) => s + (Number(row[k])||0), 0);
+                      if (!total) return null;
+                      return <text x={Number(x)+Number(width)/2} y={Number(y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#475569" fontFamily="var(--font-body)">₹{(total/1000).toFixed(0)}k</text>;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -693,7 +713,16 @@ export default function Home() {
                   <Tooltip content={<GlassTooltip />} />
                   <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 12 }} />
                   <Bar dataKey="Cash" stackId="a" fill="#f97316" fillOpacity={0.85} />
-                  <Bar dataKey="Bank" stackId="a" fill="#4f8ef7" fillOpacity={0.85} radius={[4,4,0,0]} />
+                  <Bar dataKey="Bank" stackId="a" fill="#4f8ef7" fillOpacity={0.85} radius={[4,4,0,0]}>
+                    <LabelList position="top" content={(props: any) => {
+                      const { x, y, width, index } = props;
+                      const row = (data.monthly_payment || [])[index];
+                      if (!row) return null;
+                      const total = (Number(row["Cash"])||0) + (Number(row["Bank"])||0);
+                      if (!total) return null;
+                      return <text x={Number(x)+Number(width)/2} y={Number(y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#475569" fontFamily="var(--font-body)">₹{(total/1000).toFixed(0)}k</text>;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
