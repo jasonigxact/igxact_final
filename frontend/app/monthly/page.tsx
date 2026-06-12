@@ -254,7 +254,15 @@ export default function MonthlyPage() {
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
                   <Legend wrapperStyle={{ fontFamily:"var(--font-body)", fontSize:12, paddingTop:8 }} />
                   <Bar dataKey="Deal Price" fill="#2563eb" radius={[4,4,0,0]} />
-                  <Bar dataKey="Net Profit (without Driver Salary)" name="Net Profit" fill="#22d3a0" radius={[4,4,0,0]} />
+                  <Bar dataKey="Net Profit (without Driver Salary)" name="Net Profit" fill="#22d3a0" radius={[4,4,0,0]}>
+                    <LabelList dataKey="Net Profit (without Driver Salary)" position="top" content={(props: any) => {
+                      const deal = Number(props?.value ?? 0);
+                      const idx = props?.index ?? 0;
+                      const dealPrice = Number(formattedData[idx]?.["Deal Price"] || 0);
+                      const pct = dealPrice > 0 ? ((deal / dealPrice) * 100).toFixed(1) : "0";
+                      return deal > 0 ? <text x={Number(props.x)+Number(props.width)/2} y={Number(props.y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#16a34a" fontFamily="var(--font-body)">{pct}%</text> : null;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

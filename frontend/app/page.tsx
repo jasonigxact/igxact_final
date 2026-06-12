@@ -502,8 +502,20 @@ export default function Home() {
                 <YAxis {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
                 <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 12 }} />
-                <Bar dataKey="Revenue"   fill="url(#gradRev)"    radius={[7,7,0,0]} />
-                <Bar dataKey="NetProfit" fill="url(#gradProfit)" radius={[7,7,0,0]} />
+                <Bar dataKey="Revenue"   fill="url(#gradRev)"    radius={[7,7,0,0]}>
+                  <LabelList dataKey="Revenue" position="top" content={(props: any) => {
+                    const total = (data.monthly||[]).reduce((s:number,r:any)=>s+(Number(r.Revenue)||0),0);
+                    const pct = total>0 ? ((Number(props.value)/total)*100).toFixed(1) : "0";
+                    return props.value>0 ? <text x={Number(props.x)+Number(props.width)/2} y={Number(props.y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#4f8ef7" fontFamily="var(--font-body)">{pct}%</text> : null;
+                  }} />
+                </Bar>
+                <Bar dataKey="NetProfit" fill="url(#gradProfit)" radius={[7,7,0,0]}>
+                  <LabelList dataKey="NetProfit" position="top" content={(props: any) => {
+                    const total = (data.monthly||[]).reduce((s:number,r:any)=>s+(Number(r.Revenue)||0),0);
+                    const pct = total>0 ? ((Number(props.value)/total)*100).toFixed(1) : "0";
+                    return props.value>0 ? <text x={Number(props.x)+Number(props.width)/2} y={Number(props.y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#22d3a0" fontFamily="var(--font-body)">{pct}%</text> : null;
+                  }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -525,7 +537,13 @@ export default function Home() {
                   <XAxis dataKey="Vehicle Details" {...axisProps} />
                   <YAxis {...axisProps} />
                   <Tooltip content={<GlassTooltip />} />
-                  <Bar dataKey="TotalRevenue" fill="url(#gradVeh)" radius={[7,7,0,0]} />
+                  <Bar dataKey="TotalRevenue" fill="url(#gradVeh)" radius={[7,7,0,0]}>
+                    <LabelList dataKey="TotalRevenue" position="top" content={(props: any) => {
+                      const total = (data.vehicle||[]).reduce((s:number,r:any)=>s+(Number(r.TotalRevenue)||0),0);
+                      const pct = total>0 ? ((Number(props.value)/total)*100).toFixed(1) : "0";
+                      return props.value>0 ? <text x={Number(props.x)+Number(props.width)/2} y={Number(props.y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#4f8ef7" fontFamily="var(--font-body)">{pct}%</text> : null;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -542,7 +560,9 @@ export default function Home() {
                   <XAxis dataKey="Vehicle Details" {...axisProps} />
                   <YAxis {...axisProps} />
                   <Tooltip content={<GlassTooltip />} />
-                  <Bar dataKey="AvgMargin" fill="url(#gradMargin)" radius={[7,7,0,0]} />
+                  <Bar dataKey="AvgMargin" fill="url(#gradMargin)" radius={[7,7,0,0]}>
+                    <LabelList dataKey="AvgMargin" position="top" formatter={(v:any) => v>0 ? `${Number(v).toFixed(1)}%` : ""} style={{ fontSize:9, fill:"#7c3aed", fontWeight:700, fontFamily:"var(--font-body)" }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -564,7 +584,13 @@ export default function Home() {
                 <XAxis type="number" {...axisProps} />
                 <YAxis dataKey="Customer" type="category" width={160} {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
-                <Bar dataKey="Revenue" fill="url(#gradCust)" radius={[0,7,7,0]} />
+                <Bar dataKey="Revenue" fill="url(#gradCust)" radius={[0,7,7,0]}>
+                  <LabelList dataKey="Revenue" position="insideRight" content={(props: any) => {
+                    const total = (data.top_customers||[]).reduce((s:number,r:any)=>s+(Number(r.Revenue)||0),0);
+                    const pct = total>0 ? ((Number(props.value)/total)*100).toFixed(1) : "0";
+                    return props.value>0 ? <text x={Number(props.x)+Number(props.width)-6} y={Number(props.y)+Number(props.height)/2+4} textAnchor="end" fontSize={9} fontWeight={700} fill="#fff" fontFamily="var(--font-body)">{pct}%</text> : null;
+                  }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -586,6 +612,11 @@ export default function Home() {
                 <YAxis dataKey="Route" type="category" width={200} {...axisProps} />
                 <Tooltip content={<GlassTooltip />} />
                 <Bar dataKey="TotalRevenue" fill="url(#gradRoute)" radius={[0,7,7,0]}>
+                  <LabelList dataKey="TotalRevenue" position="insideRight" content={(props: any) => {
+                    const total = (data.routes||[]).reduce((s:number,r:any)=>s+(Number(r.TotalRevenue)||0),0);
+                    const pct = total>0 ? ((Number(props.value)/total)*100).toFixed(1) : "0";
+                    return props.value>0 ? <text x={Number(props.x)+Number(props.width)-6} y={Number(props.y)+Number(props.height)/2+4} textAnchor="end" fontSize={9} fontWeight={700} fill="#fff" fontFamily="var(--font-body)">{pct}%</text> : null;
+                  }} />
                   <LabelList dataKey="TripCount" position="right" formatter={formatTrips} style={{ fontSize: 11, fill: "var(--text-muted)" }} />
                 </Bar>
               </BarChart>
@@ -680,7 +711,18 @@ export default function Home() {
                   <Bar dataKey="Parking"          stackId="a" fill="#a78bfa" fillOpacity={0.85} />
                   <Bar dataKey="Driver Allowance" stackId="a" fill="#f97316" fillOpacity={0.85} />
                   <Bar dataKey="Sales Commission" stackId="a" fill="#f87171" fillOpacity={0.85} />
-                  <Bar dataKey="Other Expenses"   stackId="a" fill="#e11d48" fillOpacity={0.85} radius={[4,4,0,0]} />
+                  <Bar dataKey="Other Expenses"   stackId="a" fill="#e11d48" fillOpacity={0.85} radius={[4,4,0,0]}>
+                    <LabelList position="top" content={(props: any) => {
+                      const { x, y, width, index } = props;
+                      const row = (data.monthly_cost||[])[index];
+                      if (!row) return null;
+                      const KEYS = ["Fuel","Tolls & Taxes","Parking","Driver Allowance","Sales Commission","Other Expenses"];
+                      const rowTotal = KEYS.reduce((s:number,k:string)=>s+(Number(row[k])||0),0);
+                      const grandTotal = (data.monthly_cost||[]).reduce((s:number,r:any)=>s+KEYS.reduce((ss:number,k:string)=>ss+(Number(r[k])||0),0),0);
+                      const pct = grandTotal>0 ? ((rowTotal/grandTotal)*100).toFixed(1) : "0";
+                      return rowTotal>0 ? <text x={Number(x)+Number(width)/2} y={Number(y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#475569" fontFamily="var(--font-body)">{pct}%</text> : null;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -693,7 +735,20 @@ export default function Home() {
                   <Tooltip content={<GlassTooltip />} />
                   <Legend wrapperStyle={{ fontFamily: "var(--font-body)", fontSize: 12 }} />
                   <Bar dataKey="Cash" stackId="a" fill="#f97316" fillOpacity={0.85} />
-                  <Bar dataKey="Bank" stackId="a" fill="#4f8ef7" fillOpacity={0.85} radius={[4,4,0,0]} />
+                  <Bar dataKey="Bank" stackId="a" fill="#4f8ef7" fillOpacity={0.85} radius={[4,4,0,0]}>
+                    <LabelList position="top" content={(props: any) => {
+                      const { x, y, width, index } = props;
+                      const row = (data.monthly_payment||[])[index];
+                      if (!row) return null;
+                      const cash = Number(row["Cash"])||0;
+                      const bank = Number(row["Bank"])||0;
+                      const total = cash+bank;
+                      if (!total) return null;
+                      const cashPct = ((cash/total)*100).toFixed(0);
+                      const bankPct = ((bank/total)*100).toFixed(0);
+                      return <text x={Number(x)+Number(width)/2} y={Number(y)-4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#475569" fontFamily="var(--font-body)">{cashPct}%/{bankPct}%</text>;
+                    }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
