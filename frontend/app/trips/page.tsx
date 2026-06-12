@@ -144,20 +144,25 @@ export default function TripsPage() {
 
   const formatToSheetDate = (dateStr: string) => {
     if (!dateStr) return "";
-    const date = dateStr.includes("-") ? new Date(dateStr + "T00:00:00") : new Date(dateStr);
+    // Always append time to force local timezone parsing (avoid UTC midnight shifting date)
+    const normalized = dateStr.includes("T") ? dateStr : dateStr + "T00:00:00";
+    const date = new Date(normalized);
     if (isNaN(date.getTime())) return dateStr;
     return `${String(date.getMonth()+1).padStart(2,"0")}/${String(date.getDate()).padStart(2,"0")}/${date.getFullYear()}`;
   };
 
   const convertToInputDate = (sheetDate: string) => {
     if (!sheetDate) return "";
+    // MM/DD/YYYY format from sheet
     const parts = sheetDate.split("/");
     if (parts.length === 3) {
       const [month, day, year] = parts.map(Number);
       if (month && day && year) return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     }
-    const date = new Date(sheetDate);
-    return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+    // ISO or other format — append time to avoid UTC shift
+    const normalized = sheetDate.includes("T") ? sheetDate : sheetDate + "T00:00:00";
+    const date = new Date(normalized);
+    return isNaN(date.getTime()) ? "" : `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
   };
 
   // ── Live profit preview ───────────────────────────────────────────────────
@@ -701,7 +706,7 @@ export default function TripsPage() {
                             </td>
                             <td style={{ padding:"10px 12px" }}>{trip["Trip From"]} → {trip["Trip TO"]}</td>
                             <td style={{ padding:"10px 12px", whiteSpace:"nowrap", color:"var(--text-muted)" }}>
-                              {trip["Start Date"] ? new Date(trip["Start Date"]).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : ""}
+                              {trip["Start Date"] ? new Date(trip["Start Date"].includes("T") ? trip["Start Date"] : trip["Start Date"]+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : ""}
                             </td>
                             <td style={{ padding:"10px 12px" }}>{trip["Vehicle Details"]}</td>
                             <td style={{ padding:"10px 12px", fontWeight:600 }}>₹{tDeal.toLocaleString("en-IN")}</td>

@@ -94,7 +94,7 @@ export default function MonthlyPage() {
     return {
       ...item,
       "Net Profit (without Driver Salary)": netProfit,
-      formattedDate: item["Start Date"] ? new Date(item["Start Date"]).toLocaleDateString("en-GB") : ""
+      formattedDate: item["Start Date"] ? new Date((item["Start Date"]+"").includes("T") ? item["Start Date"] : item["Start Date"]+"T00:00:00").toLocaleDateString("en-GB") : ""
     };
   });
 
