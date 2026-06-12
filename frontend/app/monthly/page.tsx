@@ -269,43 +269,56 @@ export default function MonthlyPage() {
           </section>
         )}
 
-        {/* ── Overall Company Expense Breakdown ── */}
-        {expensePieData.length > 0 && (
-          <section className="section">
-            <div className="section-header"><h2 className="section-title">Overall Company Expense Breakdown</h2></div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, alignItems:"center" }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={expensePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }: any) => `${name} ${(percent*100).toFixed(1)}%`} labelLine={true}>
-                    {expensePieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                {expensePieData.map((e, i) => {
-                  const pct = totalExpenses > 0 ? ((e.value / totalExpenses)*100).toFixed(1) : "0";
-                  return (
-                    <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 12px", background:"rgba(0,0,0,0.02)", borderRadius:8, border:`1px solid ${e.color}20` }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:10, height:10, borderRadius:"50%", background:e.color }} />
-                        <span style={{ fontSize:13, fontWeight:600 }}>{e.name}</span>
+        {/* ── Overall Company Revenue Breakdown ── */}
+        {totalRevenue > 0 && (() => {
+          const revPieData = [
+            { name: "Net Profit (w/ commission)",    value: Math.max(0, netProfitWith),    color: "#16a34a" },
+            { name: "Commission",                     value: totalCommission,               color: "#a855f7" },
+            { name: "Fuel",                           value: vehicleExpenses.reduce((s:number,v:any)=>s+(Number(v["Fuel"])||0),0),             color: "#2563eb" },
+            { name: "Tolls & Taxes",                  value: vehicleExpenses.reduce((s:number,v:any)=>s+(Number(v["Tolls & Taxes"])||0),0),    color: "#f97316" },
+            { name: "Parking",                        value: vehicleExpenses.reduce((s:number,v:any)=>s+(Number(v["Parking"])||0),0),          color: "#22d3a0" },
+            { name: "Driver Allowance",               value: vehicleExpenses.reduce((s:number,v:any)=>s+(Number(v["Driver Allowance"])||0),0), color: "#eab308" },
+            { name: "Other Expenses",                 value: vehicleExpenses.reduce((s:number,v:any)=>s+(Number(v["Other Expenses"])||0),0),   color: "#f43f5e" },
+          ].filter(e => e.value > 0);
+
+          return (
+            <section className="section">
+              <div className="section-header"><h2 className="section-title">Overall Company Revenue Breakdown</h2></div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, alignItems:"center" }}>
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie data={revPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ name, percent }: any) => `${(percent*100).toFixed(1)}%`} labelLine={true}>
+                      {revPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, undefined]} />
+                    <Legend wrapperStyle={{ fontFamily:"var(--font-body)", fontSize:11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                  {revPieData.map((e, i) => {
+                    const pct = totalRevenue > 0 ? ((e.value / totalRevenue)*100).toFixed(1) : "0";
+                    return (
+                      <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 12px", background:"rgba(0,0,0,0.02)", borderRadius:8, border:`1px solid ${e.color}25` }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <div style={{ width:10, height:10, borderRadius:"50%", background:e.color, flexShrink:0 }} />
+                          <span style={{ fontSize:13, fontWeight:600 }}>{e.name}</span>
+                        </div>
+                        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                          <span style={{ fontSize:13, fontWeight:700 }}>₹{e.value.toLocaleString("en-IN")}</span>
+                          <span style={{ fontSize:11, fontWeight:700, background:`${e.color}18`, color:e.color, padding:"2px 8px", borderRadius:6, minWidth:44, textAlign:"center" }}>{pct}%</span>
+                        </div>
                       </div>
-                      <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-                        <span style={{ fontSize:13, fontWeight:700 }}>₹{e.value.toLocaleString("en-IN")}</span>
-                        <span style={{ fontSize:11, fontWeight:700, background:`${e.color}18`, color:e.color, padding:"2px 8px", borderRadius:6 }}>{pct}%</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 12px", fontWeight:800, borderTop:"2px solid var(--border-subtle)", marginTop:4 }}>
-                  <span>Total</span>
-                  <span>₹{totalExpenses.toLocaleString("en-IN")}</span>
+                    );
+                  })}
+                  <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 12px", fontWeight:800, borderTop:"2px solid var(--border-subtle)", marginTop:4 }}>
+                    <span>Total Revenue</span>
+                    <span>₹{totalRevenue.toLocaleString("en-IN")}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          );
+        })()}
 
         {/* ── Vehicle-wise Expense Chart + Table ── */}
         {vehicleExpenses.length > 0 && (
