@@ -31,6 +31,7 @@ type CRMEntry = {
   total_cash: string;
   total_bank: string;
   number_of_days: string;
+  decline_reason: string;
   _is_today?: boolean;
   _is_overdue?: boolean;
 };
@@ -257,6 +258,7 @@ export default function CRMPage() {
       advance_cash: e.advance_cash || "",
       advance_bank: e.advance_bank || "", total_cash: e.total_cash || "",
       total_bank: e.total_bank || "", number_of_days: e.number_of_days || "",
+      decline_reason: (e as any).decline_reason || "",
     });
     setEditRow(e._row);
     setModalMode("edit");
@@ -760,13 +762,13 @@ export default function CRMPage() {
                 </select>
               </div>
 
-              {/* Decline Reason - shown only when status is Trip Decline */}
+              {/* Decline Reason */}
               {form.status === "Trip Decline" && (
                 <div>
                   <Label text="Decline Reason" required />
-                  <select className="input-field" style={{ fontSize:13 }} value={form.decline_reason} onChange={e => setField("decline_reason", e.target.value)}>
+                  <select className="input-field" style={{ fontSize:13 }} value={(form as any).decline_reason || ""} onChange={e => setField("decline_reason", e.target.value)}>
                     <option value="">— Select reason —</option>
-                    {DECLINE_REASONS.map(r => <option key={r}>{r}</option>)}
+                    {DECLINE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
               )}
