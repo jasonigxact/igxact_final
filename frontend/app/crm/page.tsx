@@ -32,6 +32,7 @@ type CRMEntry = {
   total_bank: string;
   number_of_days: string;
   decline_reason: string;
+  lead_receive_date: string;
   _is_today?: boolean;
   _is_overdue?: boolean;
 };
@@ -75,6 +76,7 @@ const EMPTY_FORM = {
   advance_cash: "", advance_bank: "",
   total_cash: "", total_bank: "",
   number_of_days: "", decline_reason: "",
+  lead_receive_date: "",
 };
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -259,6 +261,7 @@ export default function CRMPage() {
       advance_bank: e.advance_bank || "", total_cash: e.total_cash || "",
       total_bank: e.total_bank || "", number_of_days: e.number_of_days || "",
       decline_reason: (e as any).decline_reason || "",
+      lead_receive_date: (e as any).lead_receive_date || "",
     });
     setEditRow(e._row);
     setModalMode("edit");
@@ -734,29 +737,105 @@ export default function CRMPage() {
             )}
 
             <div className="form-grid">
+
+              {/* Lead Receive Date */}
+              <div>
+                <Label text="Lead Receive Date" />
+                <input type="date" className="input-field" style={{ fontSize:13 }} value={(form as any).lead_receive_date || ""} onChange={e => setField("lead_receive_date", e.target.value)} />
+              </div>
+
               {/* Customer Name */}
               <div style={{ gridColumn: modalMode==="followup" ? "1/-1" : undefined }}>
                 <Label text="Customer Name" required />
                 <input className="input-field" style={{ fontSize:13 }} value={form.customer_name} onChange={e => setField("customer_name", e.target.value)} readOnly={modalMode==="followup"} />
               </div>
 
-              {/* Contact */}
+              {/* Mobile Number */}
               <div>
-                <Label text="Contact" required />
+                <Label text="Mobile Number" required />
                 <input className="input-field" style={{ fontSize:13 }} value={form.contact} onChange={e => setField("contact", e.target.value)} readOnly={modalMode==="followup"} />
               </div>
 
-              {/* Mode */}
+              {/* Lead Source */}
               <div>
-                <Label text="Mode" required />
+                <Label text="Lead Source" required />
+                <select className="input-field" style={{ fontSize:13 }} value={form.channel} onChange={e => setField("channel", e.target.value)}>
+                  {CHANNEL_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+
+              {/* Contact Mode */}
+              <div>
+                <Label text="Contact Mode" required />
                 <select className="input-field" style={{ fontSize:13 }} value={form.mode} onChange={e => setField("mode", e.target.value)}>
                   {MODE_OPTIONS.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
 
-              {/* Status */}
+              {/* Trip From */}
               <div>
-                <Label text="Status" required />
+                <Label text="Trip From" />
+                <input className="input-field" style={{ fontSize:13 }} value={form.trip_from} onChange={e => setField("trip_from", e.target.value)} placeholder="e.g. Chandigarh" />
+              </div>
+
+              {/* Trip To */}
+              <div>
+                <Label text="Trip To" />
+                <input className="input-field" style={{ fontSize:13 }} value={form.trip_to} onChange={e => setField("trip_to", e.target.value)} placeholder="e.g. Manali" />
+              </div>
+
+              {/* Travel Date */}
+              <div>
+                <Label text="Travel Date" />
+                <input type="date" className="input-field" style={{ fontSize:13 }} value={form.travel_date}
+                  onChange={e => {
+                    setField("travel_date", e.target.value);
+                    if (form.return_date) {
+                      const d = Math.round((new Date(form.return_date+"T00:00:00").getTime() - new Date(e.target.value+"T00:00:00").getTime()) / 86400000) + 1;
+                      if (d > 0) setField("number_of_days", String(d));
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Return Date */}
+              <div>
+                <Label text="Return Date" />
+                <input type="date" className="input-field" style={{ fontSize:13 }} value={form.return_date}
+                  onChange={e => {
+                    setField("return_date", e.target.value);
+                    if (form.travel_date) {
+                      const d = Math.round((new Date(e.target.value+"T00:00:00").getTime() - new Date(form.travel_date+"T00:00:00").getTime()) / 86400000) + 1;
+                      if (d > 0) setField("number_of_days", String(d));
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Vehicle Required */}
+              <div>
+                <Label text="Vehicle Required" />
+                <select className="input-field" style={{ fontSize:13 }} value={form.vehicle} onChange={e => setField("vehicle", e.target.value)}>
+                  <option value="">— None —</option>
+                  {vehicles.map(v => <option key={v}>{v}</option>)}
+                </select>
+              </div>
+
+              {/* Quoted Price */}
+              <div>
+                <Label text="Quoted Price (₹)" />
+                <input type="number" className="input-field" style={{ fontSize:13 }} value={form.quote_price} onChange={e => setField("quote_price", e.target.value)} placeholder="e.g. 45000" />
+              </div>
+
+              {/* Follow-up Date */}
+              <div>
+                <Label text="Follow-up Date" />
+                <input type="date" className="input-field" style={{ fontSize:13 }} value={form.follow_up_date} onChange={e => setField("follow_up_date", e.target.value)} />
+              </div>
+
+              {/* Lead Status */}
+              <div>
+                <Label text="Lead Status" required />
                 <select className="input-field" style={{ fontSize:13 }} value={form.status} onChange={e => setField("status", e.target.value)}>
                   {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
                 </select>
@@ -773,72 +852,21 @@ export default function CRMPage() {
                 </div>
               )}
 
-              {/* Channel */}
-              <div>
-                <Label text="Channel" required />
-                <select className="input-field" style={{ fontSize:13 }} value={form.channel} onChange={e => setField("channel", e.target.value)}>
-                  {CHANNEL_OPTIONS.map(o => <option key={o}>{o}</option>)}
-                </select>
-              </div>
-
-              {/* Vehicle */}
-              <div>
-                <Label text="Vehicle" />
-                <select className="input-field" style={{ fontSize:13 }} value={form.vehicle} onChange={e => setField("vehicle", e.target.value)}>
-                  <option value="">— None —</option>
-                  {vehicles.map(v => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-
-              {/* Quote Price */}
-              <div>
-                <Label text="Quote Price (₹)" />
-                <input type="number" className="input-field" style={{ fontSize:13 }} value={form.quote_price} onChange={e => setField("quote_price", e.target.value)} placeholder="e.g. 45000" />
-              </div>
-
-              {/* Attendant */}
-              <div>
-                <Label text="Attendant" />
-                <input className="input-field" style={{ fontSize:13, background:"rgba(0,0,0,0.04)", cursor:"not-allowed" }} value={form.attendant} readOnly placeholder="Staff name" />
-              </div>
-
-              {/* Follow-up Date */}
-              <div>
-                <Label text="Follow-Up Date" />
-                <input type="date" className="input-field" style={{ fontSize:13 }} value={form.follow_up_date} onChange={e => setField("follow_up_date", e.target.value)} />
-              </div>
-
-              {/* Deal Closed Date */}
-              <div>
-                <Label text="Deal Closed Date" />
-                <input type="date" className="input-field" style={{ fontSize:13 }} value={form.deal_closed_date} onChange={e => setField("deal_closed_date", e.target.value)} />
-              </div>
-
-              {/* Description */}
+              {/* Remarks */}
               <div style={{ gridColumn:"1/-1" }}>
-                <Label text="Notes / Description" />
+                <Label text="Remarks" />
                 <textarea className="input-field" style={{ fontSize:13, minHeight:70, resize:"vertical" }} value={form.description} onChange={e => setField("description", e.target.value)} placeholder="Customer notes, requirements…" />
               </div>
             </div>
 
-            {/* ── BOOKED-ONLY SECTION ──────────────────────────────────── */}
+            {/* ── BOOKED SECTION ──────────────────────────────────── */}
             {isBooked && (
               <div className="booked-section crm-fade">
                 <div className="booked-section-title">
                   ✅ Booking Details
                   <span style={{ fontSize:10, fontWeight:400, color:"var(--text-muted)", textTransform:"none", letterSpacing:0 }}>— required when status is Booked</span>
                 </div>
-
-                {/* Row 1 — Trip route + driver */}
                 <div className="form-grid" style={{ marginBottom:14 }}>
-                  <div>
-                    <Label text="Trip From" required />
-                    <input className="input-field" style={{ fontSize:13 }} value={form.trip_from} onChange={e => setField("trip_from", e.target.value)} placeholder="e.g. Chandigarh" />
-                  </div>
-                  <div>
-                    <Label text="Trip To" required />
-                    <input className="input-field" style={{ fontSize:13 }} value={form.trip_to} onChange={e => setField("trip_to", e.target.value)} placeholder="e.g. Manali" />
-                  </div>
                   <div>
                     <Label text="Driver Name" required />
                     <input className="input-field" style={{ fontSize:13 }} value={form.driver_name} onChange={e => setField("driver_name", e.target.value)} placeholder="Assigned driver" />
@@ -847,38 +875,11 @@ export default function CRMPage() {
                     <Label text="Number of Days" />
                     <input type="number" className="input-field" style={{ fontSize:13 }} value={form.number_of_days} onChange={e => setField("number_of_days", e.target.value)} placeholder="Auto-calculated" />
                   </div>
-                  <div>
-                    <Label text="Travel Date" />
-                    <input type="date" className="input-field" style={{ fontSize:13 }} value={form.travel_date}
-                      onChange={e => {
-                        setField("travel_date", e.target.value);
-                        // Auto-calc days
-                        if (form.return_date) {
-                          const d = Math.round((new Date(form.return_date).getTime() - new Date(e.target.value).getTime()) / 86400000) + 1;
-                          if (d > 0) setField("number_of_days", String(d));
-                        }
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label text="Return Date" />
-                    <input type="date" className="input-field" style={{ fontSize:13 }} value={form.return_date}
-                      onChange={e => {
-                        setField("return_date", e.target.value);
-                        if (form.travel_date) {
-                          const d = Math.round((new Date(e.target.value).getTime() - new Date(form.travel_date).getTime()) / 86400000) + 1;
-                          if (d > 0) setField("number_of_days", String(d));
-                        }
-                      }}
-                    />
-                  </div>
                 </div>
 
-                {/* Divider */}
                 <div style={{ borderTop:"1px solid rgba(52,211,153,0.20)", margin:"4px 0 14px" }} />
                 <p style={{ fontSize:11, fontWeight:700, color:"var(--accent-green)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:12 }}>💰 Deal &amp; Payment</p>
 
-                {/* Deal Price + Payments */}
                 <div className="form-grid" style={{ marginBottom:14 }}>
                   <div>
                     <Label text="Deal Price (₹)" required />
