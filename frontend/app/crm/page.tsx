@@ -53,6 +53,18 @@ const STATUS_PILL: Record<string, string> = {
   "Not Interested":   "pill-red",
 };
 
+const DECLINE_REASONS = [
+  "Travel Dates Not Available",
+  "Pickup Location Does Not Match Service Area",
+  "Road Conditions Not Suitable",
+  "Customer Needs Larger Vehicle",
+  "Customer Needs Smaller Vehicle",
+  "One-Way Service Not Available",
+  "Looking for More Economical Vehicle",
+  "Booked with Another Vendor",
+  "Trip Cancelled",
+];
+
 const EMPTY_FORM = {
   customer_name: "", contact: "", description: "",
   mode: "Call", status: "Enquiry", channel: "Meta Ads",
@@ -61,7 +73,7 @@ const EMPTY_FORM = {
   driver_name: "", trip_from: "", trip_to: "",
   advance_cash: "", advance_bank: "",
   total_cash: "", total_bank: "",
-  number_of_days: "",
+  number_of_days: "", decline_reason: "",
 };
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -747,6 +759,17 @@ export default function CRMPage() {
                   {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
+
+              {/* Decline Reason - shown only when status is Trip Decline */}
+              {form.status === "Trip Decline" && (
+                <div>
+                  <Label text="Decline Reason" required />
+                  <select className="input-field" style={{ fontSize:13 }} value={form.decline_reason} onChange={e => setField("decline_reason", e.target.value)}>
+                    <option value="">— Select reason —</option>
+                    {DECLINE_REASONS.map(r => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Channel */}
               <div>

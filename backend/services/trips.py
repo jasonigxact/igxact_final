@@ -439,6 +439,17 @@ def query_trips(
                 "profit_pct":      profit_pct,
             })
 
+    # Revenue breakdown (expenses + profit) — same as dashboard
+    cost_totals = {}
+    for col in EXPENSE_COLS:
+        if col in df.columns:
+            cost_totals[col] = safe_float(df[col].sum())
+    total_revenue_all = safe_float(df[REVENUE_COL].sum()) if REVENUE_COL in df.columns else 0.0
+    total_cost_sum    = sum(cost_totals.values())
+    total_profit_val  = total_revenue_all - total_cost_sum
+    revenue_breakdown = [{"name": col, "value": safe_float(val)} for col, val in cost_totals.items() if val > 0]
+    revenue_breakdown.append({"name": "Profit", "value": safe_float(total_profit_val)})
+
     return {
         "completed": _safe_summary(df_completed),
         "progress":  _safe_summary(df_progress),
@@ -447,6 +458,7 @@ def query_trips(
         "trips": df.fillna("").to_dict(orient="records"),
         "vehicle_expense_breakdown": veh_expense_chart,
         "vehicle_profit_summary": veh_profit_summary,
+        "revenue_breakdown": revenue_breakdown,
     }
 
 
