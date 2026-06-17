@@ -89,6 +89,10 @@ CRM_COLUMNS = [
     "total_cash",
     "total_bank",
     "number_of_days",
+    "decline_reason",
+    "lead_receive_date",
+    "firm",
+    "campaign",
 ]
 
 

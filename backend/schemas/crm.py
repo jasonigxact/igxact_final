@@ -61,8 +61,10 @@ class CRMEntryCreate(BaseModel):
     total_cash:       Optional[str] = Field(None, max_length=20)
     total_bank:       Optional[str] = Field(None, max_length=20)
     number_of_days:   Optional[str] = Field(None, max_length=10)
-    # ── Decline-only fields ─────────────────────────────────────────────────
     decline_reason:   Optional[str] = Field(None, max_length=200)
+    lead_receive_date: Optional[str] = Field(None, max_length=30)
+    firm:             Optional[str] = Field(None, max_length=100)
+    campaign:         Optional[str] = Field(None, max_length=100)
 
     @validator("mode", pre=True)
     def validate_mode(cls, v):
