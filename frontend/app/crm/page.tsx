@@ -33,6 +33,8 @@ type CRMEntry = {
   number_of_days: string;
   decline_reason: string;
   lead_receive_date: string;
+  firm: string;
+  campaign: string;
   _is_today?: boolean;
   _is_overdue?: boolean;
 };
@@ -41,8 +43,14 @@ type FollowupGroup = Record<string, CRMEntry[]>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MODE_OPTIONS    = ["Call", "WhatsApp"];
+const MODE_OPTIONS    = ["Call", "WhatsApp", "Mail"];
 const STATUS_OPTIONS  = ["Enquiry", "Booked", "Interested", "Super Interested", "Trip Decline", "Cancelled", "Not Interested"];
+const FIRM_OPTIONS    = ["Prime Luxury Travels", "Radhe Luxury Travels"];
+const FIRM_CHANNELS: Record<string, string[]> = {
+  "Prime Luxury Travels": ["Meta Ads", "Google Ads"],
+  "Radhe Luxury Travels": ["Google Ads"],
+};
+const META_CAMPAIGNS  = ["Business Class", "Yellow Graphics"];
 const CHANNEL_OPTIONS = ["Meta Ads", "Google Ads"];
 
 const STATUS_PILL: Record<string, string> = {
@@ -69,7 +77,7 @@ const DECLINE_REASONS = [
 
 const EMPTY_FORM = {
   customer_name: "", contact: "", description: "",
-  mode: "Call", status: "Enquiry", channel: "Meta Ads",
+  mode: "Call", status: "Enquiry", channel: "Meta Ads", firm: "", campaign: "",
   vehicle: "", follow_up_date: "", deal_closed_date: "",
   attendant: "", quote_price: "", travel_date: "", return_date: "",
   driver_name: "", trip_from: "", trip_to: "",
@@ -262,6 +270,8 @@ export default function CRMPage() {
       total_bank: e.total_bank || "", number_of_days: e.number_of_days || "",
       decline_reason: (e as any).decline_reason || "",
       lead_receive_date: (e as any).lead_receive_date || "",
+      firm: (e as any).firm || "",
+      campaign: (e as any).campaign || "",
     });
     setEditRow(e._row);
     setModalMode("edit");
@@ -756,13 +766,43 @@ export default function CRMPage() {
                 <input className="input-field" style={{ fontSize:13 }} value={form.contact} onChange={e => setField("contact", e.target.value)} readOnly={modalMode==="followup"} />
               </div>
 
+              {/* Firm */}
+              <div>
+                <Label text="Firm" required />
+                <select className="input-field" style={{ fontSize:13 }} value={(form as any).firm || ""} onChange={e => {
+                  setField("firm", e.target.value);
+                  // Reset channel when firm changes
+                  const channels = FIRM_CHANNELS[e.target.value] || [];
+                  setField("channel", channels[0] || "");
+                  setField("campaign", "");
+                }}>
+                  <option value="">— Select firm —</option>
+                  {FIRM_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+
               {/* Lead Source */}
               <div>
                 <Label text="Lead Source" required />
-                <select className="input-field" style={{ fontSize:13 }} value={form.channel} onChange={e => setField("channel", e.target.value)}>
-                  {CHANNEL_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                <select className="input-field" style={{ fontSize:13 }} value={form.channel} onChange={e => {
+                  setField("channel", e.target.value);
+                  setField("campaign", "");
+                }}>
+                  <option value="">— Select source —</option>
+                  {((form as any).firm ? FIRM_CHANNELS[(form as any).firm] || CHANNEL_OPTIONS : CHANNEL_OPTIONS).map((o: string) => <option key={o}>{o}</option>)}
                 </select>
               </div>
+
+              {/* Campaign — only for Prime + Meta Ads */}
+              {(form as any).firm === "Prime Luxury Travels" && form.channel === "Meta Ads" && (
+                <div>
+                  <Label text="Campaign" />
+                  <select className="input-field" style={{ fontSize:13 }} value={(form as any).campaign || ""} onChange={e => setField("campaign", e.target.value)}>
+                    <option value="">— Select campaign —</option>
+                    {META_CAMPAIGNS.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Contact Mode */}
               <div>
