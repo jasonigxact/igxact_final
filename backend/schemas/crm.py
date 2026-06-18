@@ -19,9 +19,9 @@ from pydantic import BaseModel, Field, validator, root_validator
 
 # ─── Allowed values ────────────────────────────────────────────────────────────
 
-MODE_VALUES    = {"Call", "WhatsApp"}
+MODE_VALUES    = {"Call", "WhatsApp", "Mail"}
 STATUS_VALUES  = {"Enquiry", "Booked", "Interested", "Super Interested", "Trip Decline", "Cancelled", "Not Interested"}
-CHANNEL_VALUES = {"Meta Ads", "Google Ads"}
+CHANNEL_VALUES = {"Meta Ads", "Google Ads", "Business Class", "Yellow Graphics"}
 
 
 def _validate_date_str(v):
@@ -41,9 +41,9 @@ class CRMEntryCreate(BaseModel):
     customer_name:    str           = Field(..., min_length=1, max_length=120)
     contact:          str           = Field(..., min_length=6, max_length=20)
     description:      Optional[str] = Field(None, max_length=1000)
-    mode:             str           = Field(...)
-    status:           str           = Field(...)
-    channel:          str           = Field(...)
+    mode:             str           = Field("Call")
+    status:           str           = Field("Enquiry")
+    channel:          str           = Field("")
     vehicle:          Optional[str] = Field(None, max_length=100)
     follow_up_date:   Optional[str] = Field(None)
     deal_closed_date: Optional[str] = Field(None)
@@ -67,13 +67,11 @@ class CRMEntryCreate(BaseModel):
     campaign:         Optional[str] = Field(None, max_length=100)
 
     @validator("mode", pre=True)
+    @validator("mode", pre=True)
     def validate_mode(cls, v):
         if not v:
-            raise ValueError("mode is required")
-        if str(v).strip() not in MODE_VALUES:
-            raise ValueError(f"mode must be one of: {', '.join(sorted(MODE_VALUES))}")
-        return str(v).strip()
-
+            return "Call"
+        return v
     @validator("status", pre=True)
     def validate_status(cls, v):
         if not v:
@@ -83,13 +81,11 @@ class CRMEntryCreate(BaseModel):
         return str(v).strip()
 
     @validator("channel", pre=True)
+    @validator("channel", pre=True)
     def validate_channel(cls, v):
         if not v:
-            raise ValueError("channel is required")
-        if str(v).strip() not in CHANNEL_VALUES:
-            raise ValueError(f"channel must be one of: {', '.join(sorted(CHANNEL_VALUES))}")
-        return str(v).strip()
-
+            return ""
+        return v
     @validator("follow_up_date", "deal_closed_date", "travel_date", "return_date", pre=True)
     def validate_date(cls, v):
         return _validate_date_str(v)
@@ -149,13 +145,11 @@ class CRMQueryParams(BaseModel):
         return v
 
     @validator("channel", pre=True)
+    @validator("channel", pre=True)
     def validate_channel(cls, v):
-        if not v or v == "all":
-            return None
-        if v not in CHANNEL_VALUES:
-            raise ValueError(f"channel must be one of: {', '.join(sorted(CHANNEL_VALUES))}")
+        if not v:
+            return ""
         return v
-
     @validator("start", "end", pre=True)
     def validate_date_filter(cls, v):
         return _validate_date_str(v)
