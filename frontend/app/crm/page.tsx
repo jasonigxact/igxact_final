@@ -324,7 +324,14 @@ export default function CRMPage() {
         res = await apiFetch("/crm/entries", { method: "POST", body: JSON.stringify(form) });
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to save");
+      if (!res.ok) {
+        // Handle Pydantic validation errors (422) which return array of errors
+        if (Array.isArray(data.detail)) {
+          const msgs = data.detail.map((e: any) => `${e.loc?.slice(1).join(".")||""}: ${e.msg}`).join(", ");
+          throw new Error(msgs);
+        }
+        throw new Error(data.detail || "Failed to save");
+      }
       toast.success(modalMode === "edit" ? "Entry updated!" : "Entry saved!");
       setShowModal(false);
       fetchAnalytics();

@@ -9,15 +9,13 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-# ─── Allowed values ────────────────────────────────────────────────────────────
-
-STATUS_VALUES  = {"Enquiry", "Booked", "Interested", "Super Interested", "Trip Decline", "Cancelled", "Not Interested"}
+STATUS_VALUES = {"Enquiry", "Booked", "Interested", "Super Interested", "Trip Decline", "Cancelled", "Not Interested"}
 
 
 class CRMEntryCreate(BaseModel):
     customer_name:     str           = Field(..., min_length=1, max_length=120)
-    contact:           str           = Field(..., min_length=6, max_length=20)
-    description:       Optional[str] = Field(None, max_length=1000)
+    contact:           str           = Field(..., min_length=1, max_length=30)
+    description:       Optional[str] = Field(None, max_length=2000)
     mode:              Optional[str] = Field(None, max_length=50)
     status:            Optional[str] = Field("Enquiry", max_length=50)
     channel:           Optional[str] = Field(None, max_length=100)
@@ -47,12 +45,10 @@ class CRMEntryCreate(BaseModel):
 
 
 class CRMEntryUpdate(CRMEntryCreate):
-    """Full replacement update — same rules as create."""
     pass
 
 
 class CRMFollowUpCreate(CRMEntryCreate):
-    """Follow-up row — same schema, customer_name & contact are pre-filled."""
     pass
 
 
