@@ -239,24 +239,31 @@ def create_crm_entry(entry: dict) -> dict:
 
     ws = _ensure_crm_sheet()
 
-    # Diagnostic: log exactly which spreadsheet/worksheet we're writing to
     try:
         logger.info(f"CRM append target → spreadsheet_id={ws.spreadsheet.id} title={ws.spreadsheet.title} worksheet={ws.title} worksheet_id={ws.id} rows_before={ws.row_count}")
     except Exception as diag_e:
         logger.warning(f"CRM diagnostic logging failed: {diag_e}")
 
     try:
-        result = ws.append_row(row, value_input_option="USER_ENTERED")
-        logger.info(f"CRM append_row API result: {result}")
+        # Find the next truly empty row by checking column A only (not full-row auto-detect,
+        # which can be thrown off by stray content far to the right e.g. column LA+).
+        col_a_values = ws.col_values(1)  # column A
+        next_row = len(col_a_values) + 1
+        if next_row < 2:
+            next_row = 2  # never write into header row
+
+        col_letter = chr(ord("A") + len(CRM_COLUMNS) - 1)
+        cell_range = f"A{next_row}:{col_letter}{next_row}"
+        ws.update(cell_range, [row], value_input_option="USER_ENTERED")
+        logger.info(f"CRM entry written to explicit range {cell_range}")
     except Exception as e:
         logger.error(f"CRM append error: {e}")
         raise HTTPException(status_code=500, detail="Failed to write CRM entry to Google Sheets")
 
     # Verify the row actually landed by re-reading the sheet
     try:
-        all_vals = ws.get_all_values()
-        last_row = all_vals[-1] if all_vals else []
-        logger.info(f"CRM post-append verification: total_rows={len(all_vals)} last_row_first_cells={last_row[:3]}")
+        check_row = ws.row_values(next_row)
+        logger.info(f"CRM post-append verification: row={next_row} first_cells={check_row[:3]}")
     except Exception as verify_e:
         logger.warning(f"CRM post-append verification failed: {verify_e}")
 
