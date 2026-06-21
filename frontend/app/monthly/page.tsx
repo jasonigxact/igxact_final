@@ -257,14 +257,15 @@ export default function MonthlyPage() {
                     angle={-55} textAnchor="end" interval={0} height={90}
                     {...axisProps}
                     tick={{ fontSize:10, fill:"#475569", fontFamily:"var(--font-body)" }}
-                    tickFormatter={(v: string) => v.split("__")[0]}
+                    tickFormatter={(v: any) => String(v ?? "").split("__")[0]}
                   />
                   <YAxis {...axisProps} />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={(label: string, payload: any) => {
+                    labelFormatter={(label: any, payload: any) => {
                       const row = payload && payload[0] ? payload[0].payload : null;
-                      const date = label.split("__")[0];
+                      const labelStr = String(label ?? "");
+                      const date = labelStr.split("__")[0];
                       return row ? `${date} — Trip #${row["trip id"] ?? ""} (${row["Customer Name"] ?? ""})` : date;
                     }}
                     formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`}
