@@ -2,7 +2,7 @@
 import { apiFetch } from "@/lib/apiFetch";
 import { toast } from "@/lib/toast";
 import Navbar from "@/components/Navbar";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,11 +123,16 @@ export default function CRMPage() {
   const [loading, setLoading] = useState(false);
 
   // Filters
-  const [filterStatus, setFilterStatus]   = useState("");
-  const [filterChannel, setFilterChannel] = useState("");
-  const [filterStart, setFilterStart]     = useState("");
-  const [filterEnd, setFilterEnd]         = useState("");
-  const [search, setSearch]               = useState("");
+  const [filterStatus, setFilterStatus]     = useState("");
+  const [filterChannel, setFilterChannel]   = useState("");
+  const [search, setSearch]                 = useState("");
+  const [filterMobile, setFilterMobile]     = useState("");
+  const [filterFirm, setFilterFirm]         = useState("");
+  const [filterMode, setFilterMode]         = useState("");
+  const [filterVehicle, setFilterVehicle]   = useState("");
+  const [filterTravelStart, setFilterTravelStart] = useState("");
+  const [filterTravelEnd, setFilterTravelEnd]     = useState("");
+  const [filterMonth, setFilterMonth]       = useState(""); // "YYYY-MM" from month cards
 
   // Modal
   const [showModal, setShowModal]   = useState(false);
@@ -161,19 +166,65 @@ export default function CRMPage() {
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filterStatus)  params.append("status", filterStatus);
-      if (filterChannel) params.append("channel", filterChannel);
-      if (filterStart)   params.append("start", filterStart);
-      if (filterEnd)     params.append("end", filterEnd);
-      if (search)        params.append("search", search);
-      const res = await apiFetch(`/crm/entries?${params}`);
+      const res = await apiFetch(`/crm/entries`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed to load");
       setEntries(data.entries || []);
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
-  }, [filterStatus, filterChannel, filterStart, filterEnd, search]);
+  }, []);
+
+  // Client-side filtered + month-bucketed entries (status, mobile, firm, source,
+  // contact mode, vehicle, travel date range, and month cards all apply here)
+  const filteredEntries = useMemo(() => {
+    let rows = [...entries];
+
+    if (search) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(r =>
+        (r.customer_name || "").toLowerCase().includes(q) ||
+        (r.contact || "").toLowerCase().includes(q) ||
+        (r.trip_from || "").toLowerCase().includes(q) ||
+        (r.trip_to || "").toLowerCase().includes(q) ||
+        (r.quote_price || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (filterStatus)  rows = rows.filter(r => (r.status || "").trim() === filterStatus);
+    if (filterChannel) rows = rows.filter(r => (r.channel || "").trim() === filterChannel);
+    if (filterMobile)  rows = rows.filter(r => (r.contact || "").toLowerCase().includes(filterMobile.toLowerCase()));
+    if (filterFirm)    rows = rows.filter(r => ((r as any).firm || "").trim() === filterFirm);
+    if (filterMode)    rows = rows.filter(r => (r.mode || "").trim() === filterMode);
+    if (filterVehicle) rows = rows.filter(r => (r.vehicle || "").trim() === filterVehicle);
+
+    if (filterTravelStart) {
+      rows = rows.filter(r => r.travel_date && r.travel_date >= filterTravelStart);
+    }
+    if (filterTravelEnd) {
+      rows = rows.filter(r => r.travel_date && r.travel_date <= filterTravelEnd);
+    }
+
+    if (filterMonth) {
+      rows = rows.filter(r => {
+        const ts = r.timestamp || "";
+        // timestamp format: "YYYY-MM-DD HH:MM:SS" or similar — take first 7 chars "YYYY-MM"
+        return ts.slice(0, 7) === filterMonth;
+      });
+    }
+
+    return rows;
+  }, [entries, search, filterStatus, filterChannel, filterMobile, filterFirm, filterMode, filterVehicle, filterTravelStart, filterTravelEnd, filterMonth]);
+
+  // Month buckets (count of leads per month, based on current calendar year)
+  const monthCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    entries.forEach(r => {
+      const ts = r.timestamp || "";
+      const key = ts.slice(0, 7); // "YYYY-MM"
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [entries]);
 
   const fetchFollowups = useCallback(async () => {
     setLoading(true);
@@ -499,27 +550,87 @@ export default function CRMPage() {
           ════════════════════════════════════════════════════════════════ */}
           {view === "table" && (
             <div className="crm-fade">
+              {/* Month Cards */}
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, overflowX:"auto", paddingBottom:4 }}>
+                {(() => {
+                  const yr = new Date().getFullYear();
+                  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  return monthNames.map((name, i) => {
+                    const key = `${yr}-${String(i+1).padStart(2,"0")}`;
+                    const count = monthCounts[key] || 0;
+                    const isActive = filterMonth === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setFilterMonth(isActive ? "" : key)}
+                        style={{
+                          minWidth:64, padding:"8px 10px", borderRadius:10, cursor:"pointer",
+                          background: isActive ? "var(--accent-primary)" : "rgba(255,255,255,0.7)",
+                          border: isActive ? "1px solid var(--accent-primary)" : "1px solid rgba(0,0,0,0.08)",
+                          color: isActive ? "#fff" : "var(--text-secondary)",
+                          textAlign:"center", flexShrink:0,
+                        }}
+                      >
+                        <div style={{ fontSize:12, fontWeight:700 }}>{name}</div>
+                        <div style={{ fontSize:15, fontWeight:800, marginTop:2 }}>{count}</div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+
               {/* Filters */}
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
-                <input className="input-field" placeholder="🔍 Name / contact" value={search} onChange={e => setSearch(e.target.value)} style={{ width:210, fontSize:13 }} />
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
+                <input className="input-field" placeholder="🔍 Name / contact / trip / price" value={search} onChange={e => setSearch(e.target.value)} style={{ width:230, fontSize:13 }} />
+
                 <select className="input-field" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize:13 }}>
                   <option value="">All Statuses</option>
                   {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
                 </select>
+
+                <input className="input-field" placeholder="📱 Mobile number" value={filterMobile} onChange={e => setFilterMobile(e.target.value)} style={{ width:150, fontSize:13 }} />
+
+                <select className="input-field" value={filterFirm} onChange={e => setFilterFirm(e.target.value)} style={{ fontSize:13 }}>
+                  <option value="">All Firms</option>
+                  {FIRM_OPTIONS.map(f => <option key={f}>{f}</option>)}
+                </select>
+
                 <select className="input-field" value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Channels</option>
+                  <option value="">All Lead Sources</option>
                   {CHANNEL_OPTIONS.map(c => <option key={c}>{c}</option>)}
                 </select>
-                <input type="date" className="input-field" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={{ fontSize:13 }} />
-                <input type="date" className="input-field" value={filterEnd}   onChange={e => setFilterEnd(e.target.value)}   style={{ fontSize:13 }} />
-                <button className="btn-ghost" onClick={fetchEntries} style={{ fontSize:13 }}>Apply</button>
-                <button className="btn-ghost" style={{ fontSize:13 }} onClick={() => { setFilterStatus(""); setFilterChannel(""); setFilterStart(""); setFilterEnd(""); setSearch(""); }}>Clear</button>
+
+                <select className="input-field" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ fontSize:13 }}>
+                  <option value="">All Contact Modes</option>
+                  {MODE_OPTIONS.map(m => <option key={m}>{m}</option>)}
+                </select>
+
+                <select className="input-field" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)} style={{ fontSize:13 }}>
+                  <option value="">All Vehicles</option>
+                  {vehicles.map(v => <option key={v}>{v}</option>)}
+                </select>
+
+                <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>Travel:</span>
+                <input type="date" className="input-field" value={filterTravelStart} onChange={e => setFilterTravelStart(e.target.value)} style={{ fontSize:13 }} />
+                <span style={{ color:"var(--text-muted)" }}>→</span>
+                <input type="date" className="input-field" value={filterTravelEnd} onChange={e => setFilterTravelEnd(e.target.value)} style={{ fontSize:13 }} />
+
+                <button
+                  className="btn-ghost"
+                  style={{ fontSize:13 }}
+                  onClick={() => {
+                    setFilterStatus(""); setFilterChannel(""); setFilterMobile("");
+                    setFilterFirm(""); setFilterMode(""); setFilterVehicle("");
+                    setFilterTravelStart(""); setFilterTravelEnd(""); setFilterMonth("");
+                    setSearch("");
+                  }}
+                >Clear All</button>
               </div>
 
               {/* Table */}
               {loading ? (
                 <div style={{ padding:48, textAlign:"center" }}><Spinner /></div>
-              ) : entries.length === 0 ? (
+              ) : filteredEntries.length === 0 ? (
                 <div className="empty-glass">No entries found. Create your first CRM entry.</div>
               ) : (
                 <div className="table-glass">
@@ -542,7 +653,7 @@ export default function CRMPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {entries.map((e) => (
+                        {filteredEntries.map((e) => (
                           <tr key={`${e._row}-${e.timestamp}`}>
                             <td>
                               <div style={{ fontWeight:600, color:"var(--text-primary)", fontSize:13 }}>{e.customer_name || "—"}</div>
@@ -604,7 +715,7 @@ export default function CRMPage() {
                 </div>
               )}
               <p style={{ fontSize:12, color:"var(--text-muted)", marginTop:10, textAlign:"right" }}>
-                {entries.length} entries · Google Sheets
+                {filteredEntries.length} of {entries.length} entries · Google Sheets
               </p>
             </div>
           )}
