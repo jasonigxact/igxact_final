@@ -26,15 +26,15 @@ export default function Navbar() {
   const navBtnClass = (path: string) =>
     `px-3 py-1.5 rounded-lg transition-colors ${
       isActive(path)
-        ? "bg-white/15 text-white font-semibold"
-        : "text-white/80 hover:text-white hover:bg-white/8"
+        ? "bg-blue-500/25 text-blue-300 font-semibold ring-1 ring-blue-400/40"
+        : "text-slate-300 hover:text-white hover:bg-white/8"
     }`;
 
   return (
     <div className="w-full flex justify-between items-center px-6 py-4 
-    bg-white/5 backdrop-blur-xl border-b border-white/10">
+    bg-slate-950/90 backdrop-blur-xl border-b border-white/10">
 
-      <h1 className="text-xl font-bold">🚀 Travel Dashboard</h1>
+      <h1 className="text-xl font-bold text-white">🚀 Travel Dashboard</h1>
 
       <div className="flex gap-2 text-sm items-center">
 
@@ -96,7 +96,7 @@ export default function Navbar() {
         {/* 🔥 LOGOUT BUTTON */}
         <button
           onClick={logout}
-          className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 ml-2"
+          className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 ml-2 text-white"
         >
           Logout-end
         </button>
