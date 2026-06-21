@@ -86,15 +86,18 @@ export default function MonthlyPage() {
       return da - db;
     });
 
-  const formattedData = finalData.map((item: any) => {
+  const formattedData = finalData.map((item: any, idx: number) => {
     const raw = item["Net Profit (without Driver Salary)"];
     const rawNum = Number(raw);
     const hasNetProfit = raw !== "" && raw !== undefined && raw !== null && !isNaN(rawNum) && rawNum !== 0;
     const netProfit = hasNetProfit ? rawNum : (Number(item["CalcProfit"]) || 0);
+    const dateLabel = item["Start Date"] ? new Date((item["Start Date"]+"").includes("T") ? item["Start Date"] : item["Start Date"]+"T00:00:00").toLocaleDateString("en-GB") : "";
     return {
       ...item,
       "Net Profit (without Driver Salary)": netProfit,
-      formattedDate: item["Start Date"] ? new Date((item["Start Date"]+"").includes("T") ? item["Start Date"] : item["Start Date"]+"T00:00:00").toLocaleDateString("en-GB") : ""
+      formattedDate: dateLabel,
+      // Unique X-axis key per trip (date stays the visible label via tickFormatter)
+      xKey: `${dateLabel}__${item["trip id"] ?? idx}`,
     };
   });
 
@@ -249,9 +252,23 @@ export default function MonthlyPage() {
               <h2>Deal Price vs Profit Per Trip (Completed)</h2>
               <ResponsiveContainer width="100%" height={420}>
                 <BarChart data={formattedData} margin={{ top:10, right:20, left:0, bottom:80 }}>
-                  <XAxis dataKey="formattedDate" angle={-55} textAnchor="end" interval={0} height={90} {...axisProps} tick={{ fontSize:10, fill:"#475569", fontFamily:"var(--font-body)" }} />
+                  <XAxis
+                    dataKey="xKey"
+                    angle={-55} textAnchor="end" interval={0} height={90}
+                    {...axisProps}
+                    tick={{ fontSize:10, fill:"#475569", fontFamily:"var(--font-body)" }}
+                    tickFormatter={(v: string) => v.split("__")[0]}
+                  />
                   <YAxis {...axisProps} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelFormatter={(label: string, payload: any) => {
+                      const row = payload && payload[0] ? payload[0].payload : null;
+                      const date = label.split("__")[0];
+                      return row ? `${date} — Trip #${row["trip id"] ?? ""} (${row["Customer Name"] ?? ""})` : date;
+                    }}
+                    formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`}
+                  />
                   <Legend wrapperStyle={{ fontFamily:"var(--font-body)", fontSize:12, paddingTop:8 }} />
                   <Bar dataKey="Deal Price" fill="#2563eb" radius={[4,4,0,0]} />
                   <Bar dataKey="Net Profit (without Driver Salary)" name="Net Profit" fill="#22d3a0" radius={[4,4,0,0]}>
