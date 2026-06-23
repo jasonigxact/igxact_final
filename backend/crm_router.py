@@ -108,9 +108,12 @@ def create_followup(body: CRMFollowUpCreate, user=Depends(verify_token)):
     """
     Create a new CRM row representing a follow-up interaction.
     Auto-fills customer_name and contact from the payload.
-    Saved as a NEW row so full history is preserved.
+    Saved as a NEW row so full history is preserved, but tagged
+    as 'followup' (not 'new') so analytics count it under the
+    same original query rather than as a separate lead.
     """
     data = body.dict()
+    data["entry_type"] = "followup"
     return create_crm_entry(data)
 
 

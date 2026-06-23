@@ -93,6 +93,7 @@ CRM_COLUMNS = [
     "lead_receive_date",
     "firm",
     "campaign",
+    "entry_type",
 ]
 
 
@@ -235,6 +236,8 @@ def create_crm_entry(entry: dict) -> dict:
     If status == 'Booked', also auto-creates a matching Trips row.
     """
     entry["timestamp"] = _now_ts()
+    if not entry.get("entry_type"):
+        entry["entry_type"] = "new"
     row = _entry_to_row(entry)
 
     ws = _ensure_crm_sheet()
@@ -430,18 +433,27 @@ def get_crm_analytics() -> dict:
         c = r.get("channel", "Unknown").strip() or "Unknown"
         channel_counts[c] = channel_counts.get(c, 0) + 1
 
-    # Conversion: how many Enquiry contacts later became Booked
-    enquiry_contacts = {
-        r["contact"] for r in rows if r.get("status") == "Enquiry" and r.get("contact")
-    }
-    booked_contacts = {
-        r["contact"] for r in rows if r.get("status") == "Booked" and r.get("contact")
-    }
-    converted = len(enquiry_contacts & booked_contacts)
-    conversion_rate = round((converted / len(enquiry_contacts) * 100), 1) if enquiry_contacts else 0
+    # ── Conversion rate ────────────────────────────────────────────────────
+    # Group all rows (new entries + their follow-ups) by contact number so
+    # each unique query is counted ONCE, regardless of how many follow-up
+    # rows exist for it. A query "converted" if ANY row for that contact
+    # has status == "Booked".
+    queries_by_contact: dict[str, list[dict]] = {}
+    for r in rows:
+        contact = (r.get("contact") or "").strip()
+        if not contact:
+            continue
+        queries_by_contact.setdefault(contact, []).append(r)
 
-    # Follow-up count
-    followup_count = sum(1 for r in rows if r.get("follow_up_date", "").strip())
+    total_queries = len(queries_by_contact)
+    converted = sum(
+        1 for contact_rows in queries_by_contact.values()
+        if any((r.get("status") or "").strip() == "Booked" for r in contact_rows)
+    )
+    conversion_rate = round((converted / total_queries * 100), 1) if total_queries else 0
+
+    # Follow-up count — rows explicitly tagged as follow-up interactions
+    followup_count = sum(1 for r in rows if (r.get("entry_type") or "").strip().lower() == "followup")
 
     return {
         "total": total,
@@ -449,6 +461,7 @@ def get_crm_analytics() -> dict:
         "channel_counts": channel_counts,
         "conversion_rate_pct": conversion_rate,
         "converted_customers": converted,
+        "total_queries": total_queries,
         "followup_scheduled": followup_count,
     }
 

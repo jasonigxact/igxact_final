@@ -557,6 +557,7 @@ export default function CRMPage() {
               <div className="analytics-chip">
                 <p style={{ fontSize:11, color:"var(--text-muted)", marginBottom:4, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em" }}>Conversion</p>
                 <p style={{ fontSize:22, fontWeight:800, fontFamily:"var(--font-display)", color:"var(--accent-green)" }}>{analytics.conversion_rate_pct}%</p>
+                <p style={{ fontSize:10.5, color:"var(--text-muted)", marginTop:2 }}>{analytics.converted_customers ?? 0} / {analytics.total_queries ?? 0} queries booked</p>
               </div>
               <div className="analytics-chip">
                 <p style={{ fontSize:11, color:"var(--text-muted)", marginBottom:4, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em" }}>Follow-Ups</p>
@@ -582,110 +583,107 @@ export default function CRMPage() {
           ════════════════════════════════════════════════════════════════ */}
           {view === "table" && (
             <div className="crm-fade">
-              {/* Month Cards — Lead Receive Month */}
-              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 }}>Filter by Lead Receive Month</p>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, overflowX:"auto", paddingBottom:4 }}>
-                {(() => {
-                  const yr = new Date().getFullYear();
-                  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                  return monthNames.map((name, i) => {
-                    const key = `${yr}-${String(i+1).padStart(2,"0")}`;
-                    const count = monthCounts[key] || 0;
-                    const isActive = filterMonth === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setFilterMonth(isActive ? "" : key)}
-                        style={{
-                          minWidth:64, padding:"8px 10px", borderRadius:10, cursor:"pointer",
-                          background: isActive ? "var(--accent-primary)" : "rgba(255,255,255,0.7)",
-                          border: isActive ? "1px solid var(--accent-primary)" : "1px solid rgba(0,0,0,0.08)",
-                          color: isActive ? "#fff" : "var(--text-secondary)",
-                          textAlign:"center", flexShrink:0,
-                        }}
-                      >
-                        <div style={{ fontSize:12, fontWeight:700 }}>{name}</div>
-                        <div style={{ fontSize:15, fontWeight:800, marginTop:2 }}>{count}</div>
-                      </button>
-                    );
-                  });
-                })()}
-              </div>
+              {/* Compact Filter Bar */}
+              <div style={{
+                display:"flex", flexWrap:"wrap", gap:8, alignItems:"center",
+                marginBottom:16, padding:"12px 14px",
+                background:"rgba(0,0,0,0.02)", borderRadius:12, border:"1px solid rgba(0,0,0,0.06)",
+              }}>
+                <input
+                  className="input-field" placeholder="🔍 Search name / contact / trip / price"
+                  value={search} onChange={e => setSearch(e.target.value)}
+                  style={{ width:200, fontSize:12.5, padding:"7px 10px" }}
+                />
 
-              {/* Month Cards — Travel Month */}
-              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 }}>Filter by Travel Month</p>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, overflowX:"auto", paddingBottom:4 }}>
-                {(() => {
-                  const yr = new Date().getFullYear();
-                  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                  return monthNames.map((name, i) => {
-                    const key = `${yr}-${String(i+1).padStart(2,"0")}`;
-                    const count = travelMonthCounts[key] || 0;
-                    const isActive = filterTravelMonth === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setFilterTravelMonth(isActive ? "" : key)}
-                        style={{
-                          minWidth:64, padding:"8px 10px", borderRadius:10, cursor:"pointer",
-                          background: isActive ? "#7c3aed" : "rgba(255,255,255,0.7)",
-                          border: isActive ? "1px solid #7c3aed" : "1px solid rgba(0,0,0,0.08)",
-                          color: isActive ? "#fff" : "var(--text-secondary)",
-                          textAlign:"center", flexShrink:0,
-                        }}
-                      >
-                        <div style={{ fontSize:12, fontWeight:700 }}>{name}</div>
-                        <div style={{ fontSize:15, fontWeight:800, marginTop:2 }}>{count}</div>
-                      </button>
-                    );
-                  });
-                })()}
-              </div>
-
-              {/* Filters */}
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
-                <input className="input-field" placeholder="🔍 Name / contact / trip / price" value={search} onChange={e => setSearch(e.target.value)} style={{ width:230, fontSize:13 }} />
-
-                <select className="input-field" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Statuses</option>
+                <select className="input-field" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize:12.5, padding:"7px 10px", width:118 }}>
+                  <option value="">Status</option>
                   {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
                 </select>
 
-                <input className="input-field" placeholder="📱 Mobile number" value={filterMobile} onChange={e => setFilterMobile(e.target.value)} style={{ width:150, fontSize:13 }} />
+                <input
+                  className="input-field" placeholder="📱 Mobile"
+                  value={filterMobile} onChange={e => setFilterMobile(e.target.value)}
+                  style={{ width:110, fontSize:12.5, padding:"7px 10px" }}
+                />
 
-                <select className="input-field" value={filterFirm} onChange={e => setFilterFirm(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Firms</option>
+                <select className="input-field" value={filterFirm} onChange={e => setFilterFirm(e.target.value)} style={{ fontSize:12.5, padding:"7px 10px", width:110 }}>
+                  <option value="">Firm</option>
                   {FIRM_OPTIONS.map(f => <option key={f}>{f}</option>)}
                 </select>
 
-                <select className="input-field" value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Lead Sources</option>
+                <select className="input-field" value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ fontSize:12.5, padding:"7px 10px", width:110 }}>
+                  <option value="">Lead Source</option>
                   {CHANNEL_OPTIONS.map(c => <option key={c}>{c}</option>)}
                 </select>
 
-                <select className="input-field" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Contact Modes</option>
+                <select className="input-field" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ fontSize:12.5, padding:"7px 10px", width:110 }}>
+                  <option value="">Contact Mode</option>
                   {MODE_OPTIONS.map(m => <option key={m}>{m}</option>)}
                 </select>
 
-                <select className="input-field" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)} style={{ fontSize:13 }}>
-                  <option value="">All Vehicles</option>
+                <select className="input-field" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)} style={{ fontSize:12.5, padding:"7px 10px", width:110 }}>
+                  <option value="">Vehicle</option>
                   {vehicles.map(v => <option key={v}>{v}</option>)}
                 </select>
 
-                <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>Travel:</span>
-                <input type="date" className="input-field" value={filterTravelStart} onChange={e => setFilterTravelStart(e.target.value)} style={{ fontSize:13 }} />
-                <span style={{ color:"var(--text-muted)" }}>→</span>
-                <input type="date" className="input-field" value={filterTravelEnd} onChange={e => setFilterTravelEnd(e.target.value)} style={{ fontSize:13 }} />
+                {/* Lead Receive Month dropdown */}
+                <select
+                  className="input-field"
+                  value={filterMonth}
+                  onChange={e => setFilterMonth(e.target.value)}
+                  style={{ fontSize:12.5, padding:"7px 10px", width:150, fontWeight: filterMonth ? 700 : 400, color: filterMonth ? "var(--accent-primary)" : undefined }}
+                >
+                  <option value="">Lead Receive Month</option>
+                  {(() => {
+                    const yr = new Date().getFullYear();
+                    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                    return monthNames.map((name, i) => {
+                      const key = `${yr}-${String(i+1).padStart(2,"0")}`;
+                      const count = monthCounts[key] || 0;
+                      return <option key={key} value={key}>{name} {yr} ({count})</option>;
+                    });
+                  })()}
+                </select>
 
-                <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>Lead Received:</span>
-                <input type="date" className="input-field" value={filterLeadStart} onChange={e => setFilterLeadStart(e.target.value)} style={{ fontSize:13 }} />
-                <span style={{ color:"var(--text-muted)" }}>→</span>
-                <input type="date" className="input-field" value={filterLeadEnd} onChange={e => setFilterLeadEnd(e.target.value)} style={{ fontSize:13 }} />
+                {/* Travel Month dropdown */}
+                <select
+                  className="input-field"
+                  value={filterTravelMonth}
+                  onChange={e => setFilterTravelMonth(e.target.value)}
+                  style={{ fontSize:12.5, padding:"7px 10px", width:150, fontWeight: filterTravelMonth ? 700 : 400, color: filterTravelMonth ? "#7c3aed" : undefined }}
+                >
+                  <option value="">Travel Month</option>
+                  {(() => {
+                    const yr = new Date().getFullYear();
+                    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                    return monthNames.map((name, i) => {
+                      const key = `${yr}-${String(i+1).padStart(2,"0")}`;
+                      const count = travelMonthCounts[key] || 0;
+                      return <option key={key} value={key}>{name} {yr} ({count})</option>;
+                    });
+                  })()}
+                </select>
+
+                {/* Divider */}
+                <div style={{ width:1, height:24, background:"rgba(0,0,0,0.10)" }} />
+
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ fontSize:11.5, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap" }}>Travel:</span>
+                  <input type="date" className="input-field" value={filterTravelStart} onChange={e => setFilterTravelStart(e.target.value)} style={{ fontSize:12, padding:"6px 8px", width:122 }} />
+                  <span style={{ color:"var(--text-muted)", fontSize:12 }}>→</span>
+                  <input type="date" className="input-field" value={filterTravelEnd} onChange={e => setFilterTravelEnd(e.target.value)} style={{ fontSize:12, padding:"6px 8px", width:122 }} />
+                </div>
+
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ fontSize:11.5, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap" }}>Lead Recv:</span>
+                  <input type="date" className="input-field" value={filterLeadStart} onChange={e => setFilterLeadStart(e.target.value)} style={{ fontSize:12, padding:"6px 8px", width:122 }} />
+                  <span style={{ color:"var(--text-muted)", fontSize:12 }}>→</span>
+                  <input type="date" className="input-field" value={filterLeadEnd} onChange={e => setFilterLeadEnd(e.target.value)} style={{ fontSize:12, padding:"6px 8px", width:122 }} />
+                </div>
 
                 <button
                   className="btn-ghost"
-                  style={{ fontSize:13 }}
+                  style={{ fontSize:12.5, padding:"7px 12px", marginLeft:"auto" }}
                   onClick={() => {
                     setFilterStatus(""); setFilterChannel(""); setFilterMobile("");
                     setFilterFirm(""); setFilterMode(""); setFilterVehicle("");
@@ -693,7 +691,7 @@ export default function CRMPage() {
                     setFilterTravelMonth(""); setFilterLeadStart(""); setFilterLeadEnd("");
                     setSearch("");
                   }}
-                >Clear All</button>
+                >✕ Clear All</button>
               </div>
 
               {/* Table */}

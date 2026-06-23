@@ -38,6 +38,7 @@ class CRMEntryCreate(BaseModel):
     lead_receive_date: Optional[str] = Field(None, max_length=30)
     firm:              Optional[str] = Field(None, max_length=100)
     campaign:          Optional[str] = Field(None, max_length=100)
+    entry_type:        Optional[str] = Field(None, max_length=20)  # "new" or "followup"
 
     class Config:
         populate_by_name = True
