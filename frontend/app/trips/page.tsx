@@ -294,6 +294,14 @@ export default function TripsPage() {
   };
 
   const handleEdit = (trip: any) => {
+    const rawId = trip["trip id"];
+    const parsedId = Number(rawId);
+
+    if (rawId === undefined || rawId === null || rawId === "" || isNaN(parsedId)) {
+      toast.error("Cannot edit: trip ID is missing or invalid for this row.");
+      return;
+    }
+
     // Sanitize all values — sheet can return numbers/nulls, inputs need strings
     const editableForm: any = {};
     Object.keys(trip).forEach(k => {
@@ -302,7 +310,7 @@ export default function TripsPage() {
     });
     editableForm["Start Date"] = convertToInputDate(trip["Start Date"] || "");
     editableForm["End date"]   = convertToInputDate(trip["End date"]   || "");
-    setEditingId(Number(trip["trip id"]) || null);
+    setEditingId(parsedId);
     setForm(editableForm);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
