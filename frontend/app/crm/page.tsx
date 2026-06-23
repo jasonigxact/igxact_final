@@ -132,7 +132,10 @@ export default function CRMPage() {
   const [filterVehicle, setFilterVehicle]   = useState("");
   const [filterTravelStart, setFilterTravelStart] = useState("");
   const [filterTravelEnd, setFilterTravelEnd]     = useState("");
-  const [filterMonth, setFilterMonth]       = useState(""); // "YYYY-MM" from month cards
+  const [filterMonth, setFilterMonth]       = useState(""); // "YYYY-MM" from month cards (lead receive)
+  const [filterTravelMonth, setFilterTravelMonth] = useState(""); // "YYYY-MM" from month cards (travel date)
+  const [filterLeadStart, setFilterLeadStart]     = useState("");
+  const [filterLeadEnd, setFilterLeadEnd]         = useState("");
 
   // Modal
   const [showModal, setShowModal]   = useState(false);
@@ -204,6 +207,17 @@ export default function CRMPage() {
       rows = rows.filter(r => r.travel_date && r.travel_date <= filterTravelEnd);
     }
 
+    if (filterTravelMonth) {
+      rows = rows.filter(r => (r.travel_date || "").slice(0, 7) === filterTravelMonth);
+    }
+
+    if (filterLeadStart) {
+      rows = rows.filter(r => r.lead_receive_date && r.lead_receive_date >= filterLeadStart);
+    }
+    if (filterLeadEnd) {
+      rows = rows.filter(r => r.lead_receive_date && r.lead_receive_date <= filterLeadEnd);
+    }
+
     if (filterMonth) {
       rows = rows.filter(r => {
         const ts = r.timestamp || "";
@@ -213,7 +227,7 @@ export default function CRMPage() {
     }
 
     return rows;
-  }, [entries, search, filterStatus, filterChannel, filterMobile, filterFirm, filterMode, filterVehicle, filterTravelStart, filterTravelEnd, filterMonth]);
+  }, [entries, search, filterStatus, filterChannel, filterMobile, filterFirm, filterMode, filterVehicle, filterTravelStart, filterTravelEnd, filterTravelMonth, filterLeadStart, filterLeadEnd, filterMonth]);
 
   // Month buckets (count of leads per month, based on current calendar year)
   const monthCounts = useMemo(() => {
@@ -221,6 +235,17 @@ export default function CRMPage() {
     entries.forEach(r => {
       const ts = r.timestamp || "";
       const key = ts.slice(0, 7); // "YYYY-MM"
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [entries]);
+
+  // Month buckets for Travel Date (count of trips per month)
+  const travelMonthCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    entries.forEach(r => {
+      const td = r.travel_date || "";
+      const key = td.slice(0, 7); // "YYYY-MM"
       if (key) counts[key] = (counts[key] || 0) + 1;
     });
     return counts;
@@ -557,7 +582,8 @@ export default function CRMPage() {
           ════════════════════════════════════════════════════════════════ */}
           {view === "table" && (
             <div className="crm-fade">
-              {/* Month Cards */}
+              {/* Month Cards — Lead Receive Month */}
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 }}>Filter by Lead Receive Month</p>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, overflowX:"auto", paddingBottom:4 }}>
                 {(() => {
                   const yr = new Date().getFullYear();
@@ -574,6 +600,36 @@ export default function CRMPage() {
                           minWidth:64, padding:"8px 10px", borderRadius:10, cursor:"pointer",
                           background: isActive ? "var(--accent-primary)" : "rgba(255,255,255,0.7)",
                           border: isActive ? "1px solid var(--accent-primary)" : "1px solid rgba(0,0,0,0.08)",
+                          color: isActive ? "#fff" : "var(--text-secondary)",
+                          textAlign:"center", flexShrink:0,
+                        }}
+                      >
+                        <div style={{ fontSize:12, fontWeight:700 }}>{name}</div>
+                        <div style={{ fontSize:15, fontWeight:800, marginTop:2 }}>{count}</div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Month Cards — Travel Month */}
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 }}>Filter by Travel Month</p>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, overflowX:"auto", paddingBottom:4 }}>
+                {(() => {
+                  const yr = new Date().getFullYear();
+                  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  return monthNames.map((name, i) => {
+                    const key = `${yr}-${String(i+1).padStart(2,"0")}`;
+                    const count = travelMonthCounts[key] || 0;
+                    const isActive = filterTravelMonth === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setFilterTravelMonth(isActive ? "" : key)}
+                        style={{
+                          minWidth:64, padding:"8px 10px", borderRadius:10, cursor:"pointer",
+                          background: isActive ? "#7c3aed" : "rgba(255,255,255,0.7)",
+                          border: isActive ? "1px solid #7c3aed" : "1px solid rgba(0,0,0,0.08)",
                           color: isActive ? "#fff" : "var(--text-secondary)",
                           textAlign:"center", flexShrink:0,
                         }}
@@ -622,6 +678,11 @@ export default function CRMPage() {
                 <span style={{ color:"var(--text-muted)" }}>→</span>
                 <input type="date" className="input-field" value={filterTravelEnd} onChange={e => setFilterTravelEnd(e.target.value)} style={{ fontSize:13 }} />
 
+                <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>Lead Received:</span>
+                <input type="date" className="input-field" value={filterLeadStart} onChange={e => setFilterLeadStart(e.target.value)} style={{ fontSize:13 }} />
+                <span style={{ color:"var(--text-muted)" }}>→</span>
+                <input type="date" className="input-field" value={filterLeadEnd} onChange={e => setFilterLeadEnd(e.target.value)} style={{ fontSize:13 }} />
+
                 <button
                   className="btn-ghost"
                   style={{ fontSize:13 }}
@@ -629,6 +690,7 @@ export default function CRMPage() {
                     setFilterStatus(""); setFilterChannel(""); setFilterMobile("");
                     setFilterFirm(""); setFilterMode(""); setFilterVehicle("");
                     setFilterTravelStart(""); setFilterTravelEnd(""); setFilterMonth("");
+                    setFilterTravelMonth(""); setFilterLeadStart(""); setFilterLeadEnd("");
                     setSearch("");
                   }}
                 >Clear All</button>
