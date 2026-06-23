@@ -364,10 +364,17 @@ export default function CRMPage() {
       if (!form.trip_from.trim())   return toast.error("Trip From is required when status is Booked");
       if (!form.trip_to.trim())     return toast.error("Trip To is required when status is Booked");
     }
+
+    // Guard against silent fallback to create-mode when editing
+    if (modalMode === "edit" && (editRow === null || editRow === undefined)) {
+      toast.error("Cannot save: entry row reference is missing. Please reopen the entry and try again.");
+      return;
+    }
+
     setSaving(true);
     try {
       let res: Response;
-      if (modalMode === "edit" && editRow) {
+      if (modalMode === "edit" && editRow != null) {
         res = await apiFetch(`/crm/entries/${editRow}`, { method: "PUT", body: JSON.stringify(form) });
       } else if (modalMode === "followup") {
         res = await apiFetch("/crm/followups", { method: "POST", body: JSON.stringify(form) });
