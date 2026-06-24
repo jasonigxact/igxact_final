@@ -118,6 +118,15 @@ def _ensure_crm_sheet():
             raise HTTPException(status_code=500, detail="Could not create CRM sheet")
 
 
+def _col_num_to_letter(n: int) -> str:
+    """Convert a 1-based column number to its spreadsheet letter (1=A, 26=Z, 27=AA, ...)."""
+    letters = ""
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
+
+
 def _row_to_dict(row: list, row_index: int) -> dict:
     """Map a raw sheet row (list) → dict using CRM_COLUMNS as keys."""
     d: dict = {"_row": row_index}  # 1-based sheet row number (for updates)
@@ -255,7 +264,7 @@ def create_crm_entry(entry: dict) -> dict:
         if next_row < 2:
             next_row = 2  # never write into header row
 
-        col_letter = chr(ord("A") + len(CRM_COLUMNS) - 1)
+        col_letter = _col_num_to_letter(len(CRM_COLUMNS))  # supports multi-letter (e.g. "AA")
         cell_range = f"A{next_row}:{col_letter}{next_row}"
         ws.update(cell_range, [row], value_input_option="USER_ENTERED")
         logger.info(f"CRM entry written to explicit range {cell_range}")
@@ -294,7 +303,7 @@ def update_crm_entry(row_number: int, entry: dict) -> dict:
     ws = _ensure_crm_sheet()
     try:
         # Build A1 range for full row replacement
-        col_letter = chr(ord("A") + len(CRM_COLUMNS) - 1)  # e.g. "K"
+        col_letter = _col_num_to_letter(len(CRM_COLUMNS))  # supports multi-letter (e.g. "AA")
         cell_range = f"A{row_number}:{col_letter}{row_number}"
         ws.update(cell_range, [row], value_input_option="USER_ENTERED")
     except Exception as e:
