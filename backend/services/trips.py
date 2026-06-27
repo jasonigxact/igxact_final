@@ -26,6 +26,7 @@ from services.sheets import (
     open_sheet,
     open_worksheet_by_name,
     safe_float,
+    safe_get_all_records,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ def _safe_summary(d: pd.DataFrame) -> dict:
 def get_vehicles() -> list[str]:
     ws = open_worksheet_by_name("Vehichles")
     try:
-        data = ws.get_all_records()
+        data = safe_get_all_records(ws)
     except Exception as e:
         logger.error(f"Vehicles read error: {e}")
         raise HTTPException(status_code=500, detail="Could not read vehicles")
@@ -92,7 +93,7 @@ def get_vehicles_with_targets() -> list[dict]:
     """Return vehicles with their target amount and added_date."""
     ws = open_worksheet_by_name("Vehichles")
     try:
-        data = ws.get_all_records()
+        data = safe_get_all_records(ws)
     except Exception as e:
         logger.error(f"Vehicles read error: {e}")
         raise HTTPException(status_code=500, detail="Could not read vehicles")
@@ -223,7 +224,7 @@ def add_vehicle(name: str) -> dict:
 
     ws = open_worksheet_by_name("Vehichles")
     try:
-        existing = ws.get_all_records()
+        existing = safe_get_all_records(ws)
     except Exception as e:
         logger.error(f"Vehicles read error: {e}")
         raise HTTPException(status_code=500, detail="Could not read vehicles")
@@ -264,7 +265,7 @@ def add_trip(data: dict) -> dict:
     logger.info(f"add_trip: customer='{data.get('Customer Name', '')}' vehicle='{data.get('Vehicle Details', '')}'")
     sheet = open_sheet(SHEET_GID)
     try:
-        records = sheet.get_all_records()
+        records = safe_get_all_records(sheet)
         headers = sheet.row_values(1)
     except Exception as e:
         logger.error(f"Sheet read error during add_trip: {e}")
@@ -306,7 +307,7 @@ def update_trip(trip_id: int, data: dict) -> dict:
     logger.info(f"update_trip: trip_id={trip_id} by customer='{data.get('Customer Name', '')}'")
     sheet = open_sheet(SHEET_GID)
     try:
-        records = sheet.get_all_records()
+        records = safe_get_all_records(sheet)
         headers = sheet.row_values(1)
     except Exception as e:
         logger.error(f"Sheet read error during update_trip: {e}")

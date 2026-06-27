@@ -159,6 +159,49 @@ EXPENSE_COLS = [
 REVENUE_COL = "Deal Price"
 
 
+def safe_get_all_records(ws) -> list[dict]:
+    """
+    Drop-in replacement for worksheet.get_all_records() that never raises on
+    blank or duplicate header cells. Reads raw values and de-duplicates
+    headers manually before zipping into row dicts.
+    """
+    try:
+        all_values = ws.get_all_values()
+    except Exception as e:
+        logger.error(f"get_all_values failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read sheet data from Google Sheets")
+
+    if not all_values:
+        return []
+
+    raw_headers = all_values[0]
+    data_rows = all_values[1:]
+
+    seen: dict[str, int] = {}
+    safe_headers = []
+    for i, h in enumerate(raw_headers):
+        name = (h or "").strip()
+        if not name:
+            name = f"_blank_col_{i+1}"
+        if name in seen:
+            seen[name] += 1
+            name = f"{name}_{seen[name]}"
+        else:
+            seen[name] = 0
+        safe_headers.append(name)
+
+    n_cols = len(safe_headers)
+    result = []
+    for row in data_rows:
+        if len(row) < n_cols:
+            row = row + [""] * (n_cols - len(row))
+        elif len(row) > n_cols:
+            row = row[:n_cols]
+        result.append(dict(zip(safe_headers, row)))
+
+    return result
+
+
 def normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Strip whitespace and collapse internal whitespace in column names."""
     df.columns = (
@@ -170,13 +213,11 @@ def normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_trips_df() -> pd.DataFrame:
-    """Fetch all trip records from Google Sheets and return a clean DataFrame."""
+    """Fetch all trip records from Google Sheets and return a clean DataFrame.
+    Resilient to blank or duplicate header cells via safe_get_all_records().
+    """
     sheet = open_sheet(SHEET_GID)
-    try:
-        data = sheet.get_all_records()
-    except Exception as e:
-        logger.error(f"get_all_records failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to read trip data from Google Sheets")
+    data = safe_get_all_records(sheet)
 
     if not data:
         return pd.DataFrame()
