@@ -45,6 +45,8 @@ type FollowupGroup = Record<string, CRMEntry[]>;
 
 const MODE_OPTIONS    = ["Call", "WhatsApp", "Mail"];
 const STATUS_OPTIONS  = ["Enquiry", "Booked", "Interested", "Super Interested", "Trip Decline", "Cancelled", "Not Interested"];
+// Statuses where the query is closed — no further follow-up needed
+const CLOSED_STATUSES = new Set(["Booked", "Not Interested", "Trip Decline", "Cancelled"]);
 const FIRM_OPTIONS    = ["Prime Luxury Travels", "Radhe Luxury Travels"];
 const FIRM_CHANNELS: Record<string, string[]> = {
   "Prime Luxury Travels": ["Meta Ads", "Google Ads"],
@@ -770,7 +772,9 @@ export default function CRMPage() {
                             <td>
                               <div style={{ display:"flex", gap:6 }}>
                                 <button className="btn-ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => openEdit(e)}>Edit</button>
-                                <button className="btn-ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => openFollowup(e)}>Follow Up</button>
+                                {!CLOSED_STATUSES.has(e.status) && (
+                                  <button className="btn-ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => openFollowup(e)}>Follow Up</button>
+                                )}
                                 <button className="btn-ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => openHistory(e)}>History</button>
                               </div>
                             </td>

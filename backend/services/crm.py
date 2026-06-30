@@ -222,12 +222,11 @@ def _auto_create_trip_if_booked(entry: dict) -> None:
             "Start Date":                 _to_sheet_date(entry.get("travel_date", "")),
             "End date":                   _to_sheet_date(entry.get("return_date", "")),
             "Vehicle Details":            entry.get("vehicle", ""),
-            "Driver":                     entry.get("driver_name", ""),
+            "Driver Name":                entry.get("driver_name", ""),
             "Deal Price":                 entry.get("quote_price", ""),
-            "Status":                     "Booked",
-            "Lead Source":                entry.get("channel", ""),
-            "Notes":                      entry.get("description", ""),
-            "Number of Days":             entry.get("number_of_days", ""),
+            "Status":                     "booked",
+            "Remarks":                    entry.get("description", ""),
+            "Number of Days":             entry.get("number_of_days", "") or 1,
             "Booking Amt/Advance Cash":   entry.get("advance_cash", ""),
             "Booking Amt/Advance Bank":   entry.get("advance_bank", ""),
             "Total Cash":                 entry.get("total_cash", ""),
@@ -236,7 +235,7 @@ def _auto_create_trip_if_booked(entry: dict) -> None:
         result = add_trip(trip_data)
         logger.info(f"Auto-created trip #{result.get('trip_id')} from CRM booking for {entry.get('customer_name')}")
     except Exception as e:
-        logger.error(f"Auto-create trip failed (non-critical): {e}")
+        logger.error(f"Auto-create trip failed (non-critical): {e}", exc_info=True)
 
 
 def create_crm_entry(entry: dict) -> dict:
@@ -374,12 +373,39 @@ def get_followups_by_date(target_date: Optional[str] = None) -> dict:
     Return follow-up entries grouped by follow_up_date.
     If target_date (YYYY-MM-DD) is given, return only that date's entries.
     Also flags overdue and today's follow-ups.
+
+    Excludes any row belonging to a contact whose MOST RECENT entry has a
+    closed status (Booked, Not Interested, Trip Decline, Cancelled) — once
+    a query is closed, it should no longer appear in follow-up reminders
+    even if an older row still has a follow_up_date set.
     """
+    CLOSED_STATUSES = {"Booked", "Not Interested", "Trip Decline", "Cancelled"}
+
     rows = get_all_crm_entries()
     today = date.today()
 
-    # Filter to rows that have a follow_up_date
-    followup_rows = [r for r in rows if r.get("follow_up_date", "").strip()]
+    # Determine each contact's latest status (by timestamp)
+    latest_status_by_contact: dict[str, str] = {}
+    latest_ts_by_contact: dict[str, str] = {}
+    for r in rows:
+        contact = (r.get("contact") or "").strip()
+        if not contact:
+            continue
+        ts = (r.get("timestamp") or "")
+        if contact not in latest_ts_by_contact or ts > latest_ts_by_contact[contact]:
+            latest_ts_by_contact[contact] = ts
+            latest_status_by_contact[contact] = (r.get("status") or "").strip()
+
+    # Filter to rows that have a follow_up_date AND whose contact is not closed
+    followup_rows = []
+    for r in rows:
+        if not r.get("follow_up_date", "").strip():
+            continue
+        contact = (r.get("contact") or "").strip()
+        latest_status = latest_status_by_contact.get(contact, "")
+        if latest_status in CLOSED_STATUSES:
+            continue
+        followup_rows.append(r)
 
     grouped: dict[str, list] = {}
     for r in followup_rows:
