@@ -159,6 +159,15 @@ EXPENSE_COLS = [
 REVENUE_COL = "Deal Price"
 
 
+def col_num_to_letter(n: int) -> str:
+    """Convert a 1-based column number to its spreadsheet letter (1=A, 26=Z, 27=AA, ...)."""
+    letters = ""
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
+
+
 def safe_get_all_records(ws) -> list[dict]:
     """
     Drop-in replacement for worksheet.get_all_records() that never raises on
