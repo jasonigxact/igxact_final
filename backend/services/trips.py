@@ -22,6 +22,7 @@ from services.sheets import (
     EXPENSE_COLS,
     REVENUE_COL,
     clean_col,
+    col_num_to_letter,
     load_trips_df,
     open_sheet,
     open_worksheet_by_name,
@@ -252,7 +253,13 @@ def add_vehicle(name: str) -> dict:
     new_row[name_col] = name
     new_row[date_col] = today_str
 
-    ws.append_row(new_row)
+    # Use explicit range to avoid stray far-right content misfire
+    col_a_vals = ws.col_values(1)
+    next_veh_row = len(col_a_vals) + 1
+    if next_veh_row < 2:
+        next_veh_row = 2
+    veh_col_letter = col_num_to_letter(len(new_row))
+    ws.update(f"A{next_veh_row}:{veh_col_letter}{next_veh_row}", [new_row], value_input_option="USER_ENTERED")
     logger.info(f"add_vehicle: added '{name}' with added_date={today_str}")
     return {"msg": "Vehicle added", "name": name, "added_date": today_str}
 
@@ -266,7 +273,11 @@ def add_trip(data: dict) -> dict:
     sheet = open_sheet(SHEET_GID)
     try:
         records = safe_get_all_records(sheet)
-        headers = sheet.row_values(1)
+        raw_headers = sheet.row_values(1)
+        # Strip trailing empty cells so col_letter calculation is accurate
+        headers = raw_headers
+        while headers and not str(headers[-1]).strip():
+            headers = headers[:-1]
     except Exception as e:
         logger.error(f"Sheet read error during add_trip: {e}")
         raise HTTPException(status_code=500, detail="Failed to read sheet")
@@ -295,7 +306,18 @@ def add_trip(data: dict) -> dict:
             row.append(data.get(col, ""))
 
     try:
-        sheet.append_row(row, value_input_option="USER_ENTERED")
+        # Find next empty row using column A's count only (not full-row auto-detect,
+        # which can misfire far to the right if stray content exists beyond
+        # the defined columns — same issue previously fixed in CRM).
+        col_a_values = sheet.col_values(1)
+        next_row = len(col_a_values) + 1
+        if next_row < 2:
+            next_row = 2  # never write into header row
+
+        col_letter = col_num_to_letter(len(headers))
+        cell_range = f"A{next_row}:{col_letter}{next_row}"
+        sheet.update(cell_range, [row], value_input_option="USER_ENTERED")
+        logger.info(f"add_trip: trip #{trip_id} written to explicit range {cell_range}")
     except Exception as e:
         logger.error(f"Sheet append error: {e}")
         raise HTTPException(status_code=500, detail="Failed to save trip")
@@ -308,7 +330,11 @@ def update_trip(trip_id: int, data: dict) -> dict:
     sheet = open_sheet(SHEET_GID)
     try:
         records = safe_get_all_records(sheet)
-        headers = sheet.row_values(1)
+        raw_headers = sheet.row_values(1)
+        # Strip trailing empty cells so col_letter calculation is accurate
+        headers = raw_headers
+        while headers and not str(headers[-1]).strip():
+            headers = headers[:-1]
     except Exception as e:
         logger.error(f"Sheet read error during update_trip: {e}")
         raise HTTPException(status_code=500, detail="Failed to read sheet")
@@ -328,7 +354,10 @@ def update_trip(trip_id: int, data: dict) -> dict:
                 for col in headers
             ]
             try:
-                sheet.update(f"A{i + 2}", [updated_row])
+                col_letter = col_num_to_letter(len(headers))
+                row_number = i + 2
+                cell_range = f"A{row_number}:{col_letter}{row_number}"
+                sheet.update(cell_range, [updated_row], value_input_option="USER_ENTERED")
             except Exception as e:
                 logger.error(f"Sheet update error: {e}")
                 raise HTTPException(status_code=500, detail="Failed to update trip")
