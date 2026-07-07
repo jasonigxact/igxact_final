@@ -107,13 +107,13 @@ def list_followups(
 def create_followup(body: CRMFollowUpCreate, user=Depends(verify_token)):
     """
     Create a new CRM row representing a follow-up interaction.
-    Auto-fills customer_name and contact from the payload.
-    Saved as a NEW row so full history is preserved, but tagged
-    as 'followup' (not 'new') so analytics count it under the
-    same original query rather than as a separate lead.
+    Inherits the enquiry_id from the parent entry so all follow-ups
+    are linked to the same original enquiry.
     """
     data = body.dict()
     data["entry_type"] = "followup"
+    # enquiry_id should be passed in the payload from the frontend
+    # (copied from the parent entry when Follow Up button is clicked)
     return create_crm_entry(data)
 
 
@@ -123,18 +123,19 @@ def create_followup(body: CRMFollowUpCreate, user=Depends(verify_token)):
 def customer_history(
     contact:       str = Query(None),
     customer_name: str = Query(None),
+    enquiry_id:    str = Query(None),
     user=Depends(verify_token),
 ):
     """
-    Return the full timeline of CRM interactions for a customer.
-    Identified by contact number or customer_name (contact takes priority).
+    Return the full timeline of CRM interactions for an enquiry.
+    Identified by enquiry_id (preferred), contact number, or customer_name.
     """
-    if not contact and not customer_name:
+    if not contact and not customer_name and not enquiry_id:
         raise HTTPException(
             status_code=400,
-            detail="Provide at least one of: contact, customer_name"
+            detail="Provide at least one of: enquiry_id, contact, customer_name"
         )
-    rows = get_customer_history(contact=contact, customer_name=customer_name)
+    rows = get_customer_history(contact=contact, customer_name=customer_name, enquiry_id=enquiry_id)
     return {"history": rows, "total": len(rows)}
 
 

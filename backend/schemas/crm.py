@@ -39,6 +39,7 @@ class CRMEntryCreate(BaseModel):
     firm:              Optional[str] = Field(None, max_length=100)
     campaign:          Optional[str] = Field(None, max_length=100)
     entry_type:        Optional[str] = Field(None, max_length=20)  # "new" or "followup"
+    enquiry_id:        Optional[str] = Field(None, max_length=30)  # e.g. ENQ-20260626-001
 
     class Config:
         populate_by_name = True

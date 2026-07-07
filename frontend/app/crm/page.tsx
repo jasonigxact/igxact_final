@@ -35,6 +35,7 @@ type CRMEntry = {
   lead_receive_date: string;
   firm: string;
   campaign: string;
+  enquiry_id: string;
   _is_today?: boolean;
   _is_overdue?: boolean;
 };
@@ -86,7 +87,7 @@ const EMPTY_FORM = {
   advance_cash: "", advance_bank: "",
   total_cash: "", total_bank: "",
   number_of_days: "", decline_reason: "",
-  lead_receive_date: "",
+  lead_receive_date: "", enquiry_id: "",
 };
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -181,8 +182,26 @@ export default function CRMPage() {
 
   // Client-side filtered + month-bucketed entries (status, mobile, firm, source,
   // contact mode, vehicle, travel date range, and month cards all apply here)
+  // Deduplicate entries — show only LATEST row per enquiry_id
+  // All follow-up rows are hidden from the table (visible in History modal)
+  // This means each enquiry appears ONCE with its current status
+  const deduplicatedEntries = useMemo(() => {
+    const groups: Record<string, CRMEntry[]> = {};
+    entries.forEach(e => {
+      const key = e.enquiry_id?.trim() || `contact_${e.contact?.trim()}` || `row_${e._row}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+    // From each group, pick the latest row by timestamp
+    return Object.values(groups).map(group =>
+      group.reduce((latest, cur) =>
+        (cur.timestamp || "") > (latest.timestamp || "") ? cur : latest
+      )
+    );
+  }, [entries]);
+
   const filteredEntries = useMemo(() => {
-    let rows = [...entries];
+    let rows = [...deduplicatedEntries];
 
     if (search) {
       const q = search.trim().toLowerCase();
@@ -229,7 +248,7 @@ export default function CRMPage() {
     }
 
     return rows;
-  }, [entries, search, filterStatus, filterChannel, filterMobile, filterFirm, filterMode, filterVehicle, filterTravelStart, filterTravelEnd, filterTravelMonth, filterLeadStart, filterLeadEnd, filterMonth]);
+  }, [deduplicatedEntries, search, filterStatus, filterChannel, filterMobile, filterFirm, filterMode, filterVehicle, filterTravelStart, filterTravelEnd, filterTravelMonth, filterLeadStart, filterLeadEnd, filterMonth]);
 
   // Month buckets (count of leads per month, based on current calendar year)
   const monthCounts = useMemo(() => {
@@ -350,6 +369,7 @@ export default function CRMPage() {
       lead_receive_date: (e as any).lead_receive_date || "",
       firm: (e as any).firm || "",
       campaign: (e as any).campaign || "",
+      enquiry_id: e.enquiry_id || "",
     });
     setEditRow(e._row);
     setModalMode("edit");
@@ -357,13 +377,34 @@ export default function CRMPage() {
   };
 
   const openFollowup = (e: CRMEntry) => {
+    // Auto-fill ALL fields from the parent entry so operator only changes what's needed
     setForm({
-      ...EMPTY_FORM,
-      customer_name: e.customer_name,
-      contact: e.contact,
-      mode: e.mode || "Call",
-      channel: e.channel || "Meta Ads",
-      status: "Enquiry",
+      customer_name:    e.customer_name,
+      contact:          e.contact,
+      description:      e.description || "",
+      mode:             e.mode || "Call",
+      status:           e.status || "Enquiry",
+      channel:          e.channel || "Meta Ads",
+      firm:             (e as any).firm || "",
+      campaign:         (e as any).campaign || "",
+      vehicle:          e.vehicle || "",
+      follow_up_date:   "",  // clear — operator sets next follow-up date
+      deal_closed_date: e.deal_closed_date || "",
+      attendant:        e.attendant || "",
+      quote_price:      e.quote_price || "",
+      travel_date:      e.travel_date || "",
+      return_date:      e.return_date || "",
+      driver_name:      e.driver_name || "",
+      trip_from:        e.trip_from || "",
+      trip_to:          e.trip_to || "",
+      advance_cash:     e.advance_cash || "",
+      advance_bank:     e.advance_bank || "",
+      total_cash:       e.total_cash || "",
+      total_bank:       e.total_bank || "",
+      number_of_days:   e.number_of_days || "",
+      decline_reason:   (e as any).decline_reason || "",
+      lead_receive_date: (e as any).lead_receive_date || "",
+      enquiry_id:       e.enquiry_id || "",  // inherit same enquiry_id
     });
     setEditRow(null);
     setModalMode("followup");
@@ -374,7 +415,11 @@ export default function CRMPage() {
     setHistoryModal(true);
     setHistoryLoading(true);
     try {
-      const res = await apiFetch(`/crm/history?contact=${e.contact}`);
+      // Use enquiry_id if available, fall back to contact
+      const param = e.enquiry_id
+        ? `enquiry_id=${encodeURIComponent(e.enquiry_id)}`
+        : `contact=${encodeURIComponent(e.contact)}`;
+      const res = await apiFetch(`/crm/history?${param}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
       setHistoryEntries(data.history || []);
@@ -727,6 +772,11 @@ export default function CRMPage() {
                             <td>
                               <div style={{ fontWeight:600, color:"var(--text-primary)", fontSize:13 }}>{e.customer_name || "—"}</div>
                               <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:2 }}>{e.timestamp?.slice(0,10)}</div>
+                              {e.enquiry_id && (
+                                <div style={{ fontSize:10, fontWeight:700, color:"var(--accent-primary)", background:"rgba(37,99,235,0.08)", padding:"1px 6px", borderRadius:4, marginTop:3, display:"inline-block" }}>
+                                  {e.enquiry_id}
+                                </div>
+                              )}
                             </td>
                             <td style={{ fontFamily:"monospace", fontSize:13 }}>{e.contact || "—"}</td>
                             <td>
@@ -786,7 +836,7 @@ export default function CRMPage() {
                 </div>
               )}
               <p style={{ fontSize:12, color:"var(--text-muted)", marginTop:10, textAlign:"right" }}>
-                {filteredEntries.length} of {entries.length} entries · Google Sheets
+                {filteredEntries.length} unique enquiries (of {entries.length} total rows) · Google Sheets
               </p>
             </div>
           )}

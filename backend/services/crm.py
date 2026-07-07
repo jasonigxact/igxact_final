@@ -94,6 +94,7 @@ CRM_COLUMNS = [
     "firm",
     "campaign",
     "entry_type",
+    "enquiry_id",
 ]
 
 
@@ -238,6 +239,29 @@ def _auto_create_trip_if_booked(entry: dict) -> None:
         logger.error(f"Auto-create trip failed (non-critical): {e}", exc_info=True)
 
 
+def _generate_enquiry_id() -> str:
+    """Generate a unique enquiry ID like ENQ-20260626-001."""
+    from datetime import date as _date
+    today = _date.today().strftime("%Y%m%d")
+    # Read existing entries to find the highest sequence for today
+    try:
+        rows = get_all_crm_entries(use_cache=False)
+        prefix = f"ENQ-{today}-"
+        max_seq = 0
+        for r in rows:
+            eid = (r.get("enquiry_id") or "").strip()
+            if eid.startswith(prefix):
+                try:
+                    seq = int(eid[len(prefix):])
+                    max_seq = max(max_seq, seq)
+                except ValueError:
+                    pass
+        return f"{prefix}{str(max_seq + 1).zfill(3)}"
+    except Exception:
+        import time
+        return f"ENQ-{today}-{str(int(time.time()))[-4:]}"
+
+
 def create_crm_entry(entry: dict) -> dict:
     """
     Append a new CRM row to Google Sheets.
@@ -246,6 +270,14 @@ def create_crm_entry(entry: dict) -> dict:
     entry["timestamp"] = _now_ts()
     if not entry.get("entry_type"):
         entry["entry_type"] = "new"
+    # Auto-generate enquiry_id for new entries only
+    # Follow-ups inherit enquiry_id from parent (passed in by router)
+    if not entry.get("enquiry_id"):
+        if entry.get("entry_type") == "new":
+            entry["enquiry_id"] = _generate_enquiry_id()
+        else:
+            # followup without enquiry_id — generate one as fallback
+            entry["enquiry_id"] = _generate_enquiry_id()
     row = _entry_to_row(entry)
 
     ws = _ensure_crm_sheet()
@@ -384,25 +416,27 @@ def get_followups_by_date(target_date: Optional[str] = None) -> dict:
     rows = get_all_crm_entries()
     today = date.today()
 
-    # Determine each contact's latest status (by timestamp)
-    latest_status_by_contact: dict[str, str] = {}
-    latest_ts_by_contact: dict[str, str] = {}
+    # Determine each enquiry's latest status (by enquiry_id or contact fallback)
+    latest_status_by_eid: dict[str, str] = {}
+    latest_ts_by_eid: dict[str, str] = {}
     for r in rows:
-        contact = (r.get("contact") or "").strip()
-        if not contact:
-            continue
+        eid = (r.get("enquiry_id") or "").strip()
+        if not eid:
+            eid = f"contact_{(r.get('contact') or '').strip()}"
         ts = (r.get("timestamp") or "")
-        if contact not in latest_ts_by_contact or ts > latest_ts_by_contact[contact]:
-            latest_ts_by_contact[contact] = ts
-            latest_status_by_contact[contact] = (r.get("status") or "").strip()
+        if eid not in latest_ts_by_eid or ts > latest_ts_by_eid[eid]:
+            latest_ts_by_eid[eid] = ts
+            latest_status_by_eid[eid] = (r.get("status") or "").strip()
 
-    # Filter to rows that have a follow_up_date AND whose contact is not closed
+    # Filter to rows that have a follow_up_date AND whose enquiry is not closed
     followup_rows = []
     for r in rows:
         if not r.get("follow_up_date", "").strip():
             continue
-        contact = (r.get("contact") or "").strip()
-        latest_status = latest_status_by_contact.get(contact, "")
+        eid = (r.get("enquiry_id") or "").strip()
+        if not eid:
+            eid = f"contact_{(r.get('contact') or '').strip()}"
+        latest_status = latest_status_by_eid.get(eid, "")
         if latest_status in CLOSED_STATUSES:
             continue
         followup_rows.append(r)
@@ -425,13 +459,15 @@ def get_followups_by_date(target_date: Optional[str] = None) -> dict:
     }
 
 
-def get_customer_history(contact: str = None, customer_name: str = None) -> list[dict]:
-    """Return all CRM interactions for a contact or customer_name (full timeline)."""
+def get_customer_history(contact: str = None, customer_name: str = None, enquiry_id: str = None) -> list[dict]:
+    """Return all CRM interactions for an enquiry_id, contact, or customer_name (full timeline)."""
     rows = get_all_crm_entries()
     result = []
     for r in rows:
         match = False
-        if contact and r.get("contact", "").strip() == contact.strip():
+        if enquiry_id and (r.get("enquiry_id") or "").strip() == enquiry_id.strip():
+            match = True
+        elif contact and r.get("contact", "").strip() == contact.strip():
             match = True
         elif customer_name and r.get("customer_name", "").strip().lower() == customer_name.strip().lower():
             match = True
@@ -444,59 +480,65 @@ def get_customer_history(contact: str = None, customer_name: str = None) -> list
 
 def get_crm_analytics() -> dict:
     """
-    Compute basic CRM analytics:
-     - status distribution
-     - channel breakdown
-     - conversion rate (Enquiry → Booked)
-     - follow-up effectiveness
+    Compute CRM analytics using only the LATEST row per unique enquiry_id.
+    This ensures a customer followed up 3 times is counted as ONE enquiry,
+    with their current (latest) status only.
+    Falls back to grouping by contact if enquiry_id is missing.
     """
     rows = get_all_crm_entries()
     if not rows:
         return {"total": 0}
 
-    total = len(rows)
+    total_rows = len(rows)
 
-    # Status counts
-    status_counts: dict[str, int] = {}
+    # ── Group rows by enquiry_id (fall back to contact if no enquiry_id) ──
+    groups: dict[str, list[dict]] = {}
     for r in rows:
-        s = r.get("status", "Unknown").strip() or "Unknown"
+        eid = (r.get("enquiry_id") or "").strip()
+        if not eid:
+            # fallback: group by contact number
+            eid = f"contact_{(r.get('contact') or '').strip()}" or f"row_{r.get('_row', '')}"
+        groups.setdefault(eid, []).append(r)
+
+    # For each group, find the latest row by timestamp
+    latest_rows = []
+    for group_rows in groups.values():
+        latest = max(group_rows, key=lambda r: (r.get("timestamp") or ""))
+        latest_rows.append(latest)
+
+    total_unique = len(latest_rows)
+
+    # Status counts — based on latest status per enquiry
+    status_counts: dict[str, int] = {}
+    for r in latest_rows:
+        s = (r.get("status") or "Unknown").strip() or "Unknown"
         status_counts[s] = status_counts.get(s, 0) + 1
 
-    # Channel counts
+    # Channel counts — based on original entry's channel (first row in group)
     channel_counts: dict[str, int] = {}
-    for r in rows:
-        c = r.get("channel", "Unknown").strip() or "Unknown"
+    for group_rows in groups.values():
+        first = min(group_rows, key=lambda r: (r.get("timestamp") or ""))
+        c = (first.get("channel") or "Unknown").strip() or "Unknown"
         channel_counts[c] = channel_counts.get(c, 0) + 1
 
-    # ── Conversion rate ────────────────────────────────────────────────────
-    # Group all rows (new entries + their follow-ups) by contact number so
-    # each unique query is counted ONCE, regardless of how many follow-up
-    # rows exist for it. A query "converted" if ANY row for that contact
-    # has status == "Booked".
-    queries_by_contact: dict[str, list[dict]] = {}
-    for r in rows:
-        contact = (r.get("contact") or "").strip()
-        if not contact:
-            continue
-        queries_by_contact.setdefault(contact, []).append(r)
-
-    total_queries = len(queries_by_contact)
+    # Conversion — how many unique enquiries eventually became Booked
     converted = sum(
-        1 for contact_rows in queries_by_contact.values()
-        if any((r.get("status") or "").strip() == "Booked" for r in contact_rows)
+        1 for group_rows in groups.values()
+        if any((r.get("status") or "").strip() == "Booked" for r in group_rows)
     )
-    conversion_rate = round((converted / total_queries * 100), 1) if total_queries else 0
+    conversion_rate = round((converted / total_unique * 100), 1) if total_unique else 0
 
-    # Follow-up count — rows explicitly tagged as follow-up interactions
+    # Follow-up count
     followup_count = sum(1 for r in rows if (r.get("entry_type") or "").strip().lower() == "followup")
 
     return {
-        "total": total,
+        "total": total_unique,
+        "total_rows": total_rows,
         "status_counts": status_counts,
         "channel_counts": channel_counts,
         "conversion_rate_pct": conversion_rate,
         "converted_customers": converted,
-        "total_queries": total_queries,
+        "total_queries": total_unique,
         "followup_scheduled": followup_count,
     }
 
