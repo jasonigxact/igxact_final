@@ -123,6 +123,7 @@ export default function CRMPage() {
   const [entries, setEntries] = useState<CRMEntry[]>([]);
   const [followupData, setFollowupData] = useState<{ grouped: FollowupGroup; today: string }>({ grouped: {}, today: "" });
   const [vehicles, setVehicles] = useState<string[]>([]);
+  const [drivers,  setDrivers]  = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Filters
@@ -283,6 +284,14 @@ export default function CRMPage() {
     finally { setLoading(false); }
   }, []);
 
+  const fetchDrivers = useCallback(async () => {
+    try {
+      const res = await apiFetch("/drivers");
+      const data = await res.json();
+      setDrivers(Array.isArray(data) ? data : (data.drivers || []));
+    } catch {}
+  }, []);
+
   const fetchVehicles = useCallback(async () => {
     try {
       const res = await apiFetch("/vehicles");
@@ -331,6 +340,7 @@ export default function CRMPage() {
 
   useEffect(() => {
     fetchVehicles();
+    fetchDrivers();
     fetchAnalytics();
     setUsername(sessionStorage.getItem("username") ?? "");
   }, []);
@@ -1148,7 +1158,17 @@ export default function CRMPage() {
                 <div className="form-grid" style={{ marginBottom:14 }}>
                   <div>
                     <Label text="Driver Name" required />
-                    <input className="input-field" style={{ fontSize:13 }} value={form.driver_name} onChange={e => setField("driver_name", e.target.value)} placeholder="Assigned driver" />
+                    <select
+                      className="input-field"
+                      style={{ fontSize:13 }}
+                      value={form.driver_name}
+                      onChange={e => setField("driver_name", e.target.value)}
+                    >
+                      <option value="">— Select driver —</option>
+                      {drivers.map((d: any, i: number) => (
+                        <option key={i} value={d.name}>{d.name}{d.mobile_num ? ` — ${d.mobile_num}` : ""}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <Label text="Number of Days" />
